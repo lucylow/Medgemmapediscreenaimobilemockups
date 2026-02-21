@@ -15,6 +15,8 @@ import { DomainSelect } from "./screens/DomainSelect";
 import { SymptomChecker } from "./screens/SymptomChecker";
 import { RashAnalysis } from "./screens/RashAnalysis";
 import { GrowthTracker } from "./screens/GrowthTracker";
+import { QRPatientCard } from "./screens/QRPatientCard";
+import { QRScannerScreen } from "./screens/QRScannerScreen";
 
 export const router = createBrowserRouter([
   {
@@ -80,5 +82,13 @@ export const router = createBrowserRouter([
   {
     path: "/growth-tracker",
     Component: GrowthTracker,
+  },
+  {
+    path: "/qr-card/:childId",
+    Component: QRPatientCard,
+  },
+  {
+    path: "/qr-scanner",
+    Component: QRScannerScreen,
   },
 ]);
