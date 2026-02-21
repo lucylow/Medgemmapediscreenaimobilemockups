@@ -3,7 +3,7 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope } from "lucide-react";
+import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope, Camera } from "lucide-react";
 import { TabBar } from "../components/TabBar";
 import { motion } from "motion/react";
 import {
@@ -162,6 +162,18 @@ export function Dashboard() {
             <div className="text-left">
               <p className="font-bold text-sm">Quick Symptom Checker</p>
               <p className="text-xs text-white/70">Rapid milestone assessment</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate("/rash-analysis")}
+            className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-[#FF9800] to-[#F57C00] text-white active:scale-[0.98] transition-transform shadow-md"
+          >
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Camera className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-sm">Rash Analysis</p>
+              <p className="text-xs text-white/70">AI skin condition screening</p>
             </div>
           </button>
           <div className="grid grid-cols-2 gap-3">

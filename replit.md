@@ -16,6 +16,7 @@ A React-based pediatric developmental screening application for the MedGemma Imp
 - **Demo cases**: 4 preconfigured risk scenarios for instant demonstration
 - **Settings**: Mock API toggle, clear data, privacy info, PIN lock, notifications, app version
 - **Symptom Checker**: Standalone rapid milestone assessment with age selector, domain grid, checklist, MedGemma analysis with ASQ-3 scores, confidence %, ICD-10 codes, domain breakdown bars, and expandable findings/recommendations
+- **Rash Analysis**: AI-powered dermatological skin screening with live camera, real-time quality metrics, MedGemma analysis for atopic dermatitis/viral exanthem/bacterial infection/contact dermatitis, ICD-10 codes, treatment urgency, severity assessment, and evidence-based recommendations
 - **Bottom tab navigation**: Home, Children, Check, Demo, Settings tabs with haptic feedback
 - **Safety**: Disclaimer footers, non-diagnostic language throughout, safety flags on results
 
@@ -78,6 +79,7 @@ src/
       ClinicianReview    - Clinician demo view
       DemoCases          - Preset risk scenario demos
       SymptomChecker     - Standalone rapid milestone assessment tool
+      RashAnalysis       - AI-powered dermatological skin screening with camera
       SettingsScreen     - Settings with PIN lock, notifications, API mode
       PinLock            - 4-digit PIN lock screen
     data/
@@ -113,6 +115,19 @@ Tab Navigation (persistent on main screens):
 - Output goes to `dist/`
 
 ## Recent Changes
+- 2026-02-21: Rash Analysis - AI Dermatological Skin Screening
+  - New Rash Analysis screen at /rash-analysis with full camera pipeline
+  - Intro screen with condition detection list, photo tips, and safety disclaimer
+  - Live camera view with real-time quality metrics (lighting, focus, skin detection)
+  - Canvas-based image quality analysis (brightness, variance, skin pixel detection)
+  - Simulated MedGemma dermatology analysis with animated progress
+  - Diagnosis result card: condition type, confidence %, severity, BSA affected
+  - Treatment urgency stratification (immediate/urgent/routine)
+  - ICD-10 coding (L20.9 eczema, B09.8 viral, L08.9 bacterial, L25.9 contact)
+  - Expandable morphology and recommendations sections
+  - Detects: atopic dermatitis, viral exanthem, bacterial infection, contact dermatitis
+  - Quick access card on Dashboard with orange gradient
+  - Haptic feedback throughout capture and analysis flow
 - 2026-02-21: Symptom Checker - Rapid Milestone Assessment Tool
   - New standalone Symptom Checker screen at /symptom-checker
   - Age selector (6, 12, 18, 24, 30, 36, 48 months) with pill buttons
