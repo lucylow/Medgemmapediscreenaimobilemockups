@@ -1,27 +1,14 @@
 import { createBrowserRouter } from "react-router";
 import { Welcome } from "./screens/Welcome";
-import { Permissions } from "./screens/Permissions";
-import { Authentication } from "./screens/Authentication";
-import { ModelLoading } from "./screens/ModelLoading";
-import { ModelReady } from "./screens/ModelReady";
 import { Dashboard } from "./screens/Dashboard";
-import { NewScreening } from "./screens/NewScreening";
-import { QRScanner } from "./screens/QRScanner";
-import { CameraScreening } from "./screens/CameraScreening";
-import { ROPCamera } from "./screens/ROPCamera";
-import { BehavioralAnalysis } from "./screens/BehavioralAnalysis";
-import { LiveInference } from "./screens/LiveInference";
-import { ASQ3Dashboard } from "./screens/ASQ3Dashboard";
-import { WHOGrowth } from "./screens/WHOGrowth";
-import { AttentionMaps } from "./screens/AttentionMaps";
-import { FeatureImportance } from "./screens/FeatureImportance";
-import { ValidationDashboard } from "./screens/ValidationDashboard";
-import { TrainingFeedback } from "./screens/TrainingFeedback";
-import { AIPredictions } from "./screens/AIPredictions";
-import { RiskResults } from "./screens/RiskResults";
-import { ImpactDashboard } from "./screens/ImpactDashboard";
-import { LongitudinalGrowth } from "./screens/LongitudinalGrowth";
-import { PatientDetail } from "./screens/PatientDetail";
+import { ChildList } from "./screens/ChildList";
+import { AddChild } from "./screens/AddChild";
+import { ScreeningIntro } from "./screens/ScreeningIntro";
+import { ScreeningQuestions } from "./screens/ScreeningQuestions";
+import { ScreeningSummary } from "./screens/ScreeningSummary";
+import { ScreeningResults } from "./screens/ScreeningResults";
+import { Timeline } from "./screens/Timeline";
+import { ClinicianReview } from "./screens/ClinicianReview";
 
 export const router = createBrowserRouter([
   {
@@ -29,91 +16,39 @@ export const router = createBrowserRouter([
     Component: Welcome,
   },
   {
-    path: "/permissions",
-    Component: Permissions,
-  },
-  {
-    path: "/auth",
-    Component: Authentication,
-  },
-  {
-    path: "/model-loading",
-    Component: ModelLoading,
-  },
-  {
-    path: "/model-ready",
-    Component: ModelReady,
-  },
-  {
     path: "/dashboard",
     Component: Dashboard,
   },
   {
-    path: "/patient/:id",
-    Component: PatientDetail,
+    path: "/children",
+    Component: ChildList,
   },
   {
-    path: "/new-screening",
-    Component: NewScreening,
+    path: "/add-child",
+    Component: AddChild,
   },
   {
-    path: "/qr-scanner",
-    Component: QRScanner,
+    path: "/child/:id/screening-intro",
+    Component: ScreeningIntro,
   },
   {
-    path: "/camera-screening",
-    Component: CameraScreening,
+    path: "/screening/:sessionId/questions",
+    Component: ScreeningQuestions,
   },
   {
-    path: "/rop-camera",
-    Component: ROPCamera,
+    path: "/screening/:sessionId/summary",
+    Component: ScreeningSummary,
   },
   {
-    path: "/behavioral-analysis",
-    Component: BehavioralAnalysis,
+    path: "/screening-results/:sessionId",
+    Component: ScreeningResults,
   },
   {
-    path: "/live-inference",
-    Component: LiveInference,
+    path: "/timeline/:childId",
+    Component: Timeline,
   },
   {
-    path: "/asq3-dashboard",
-    Component: ASQ3Dashboard,
-  },
-  {
-    path: "/who-growth",
-    Component: WHOGrowth,
-  },
-  {
-    path: "/attention-maps",
-    Component: AttentionMaps,
-  },
-  {
-    path: "/feature-importance",
-    Component: FeatureImportance,
-  },
-  {
-    path: "/validation-dashboard",
-    Component: ValidationDashboard,
-  },
-  {
-    path: "/training-feedback",
-    Component: TrainingFeedback,
-  },
-  {
-    path: "/ai-predictions",
-    Component: AIPredictions,
-  },
-  {
-    path: "/results/:id",
-    Component: RiskResults,
-  },
-  {
-    path: "/impact",
-    Component: ImpactDashboard,
-  },
-  {
-    path: "/longitudinal/:id",
-    Component: LongitudinalGrowth,
+    path: "/clinician-review",
+    Component: ClinicianReview,
   },
 ]);
