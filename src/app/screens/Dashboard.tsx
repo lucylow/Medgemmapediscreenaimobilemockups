@@ -3,7 +3,7 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft } from "lucide-react";
+import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope } from "lucide-react";
 import { TabBar } from "../components/TabBar";
 import { motion } from "motion/react";
 import {
@@ -151,15 +151,29 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="px-6 py-4 grid grid-cols-2 gap-3">
-          <PrimaryButton onClick={() => navigate("/children")}>
-            <Users className="w-5 h-5 mr-1 inline" />
-            Children
-          </PrimaryButton>
-          <PrimaryButton variant="success" onClick={() => navigate("/add-child")}>
-            <Plus className="w-5 h-5 mr-1 inline" />
-            New Child
-          </PrimaryButton>
+        <div className="px-6 py-4 space-y-2">
+          <button
+            onClick={() => navigate("/symptom-checker")}
+            className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-[#1A73E8] to-[#4285F4] text-white active:scale-[0.98] transition-transform shadow-md"
+          >
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Stethoscope className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-sm">Quick Symptom Checker</p>
+              <p className="text-xs text-white/70">Rapid milestone assessment</p>
+            </div>
+          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <PrimaryButton onClick={() => navigate("/children")}>
+              <Users className="w-5 h-5 mr-1 inline" />
+              Children
+            </PrimaryButton>
+            <PrimaryButton variant="success" onClick={() => navigate("/add-child")}>
+              <Plus className="w-5 h-5 mr-1 inline" />
+              New Child
+            </PrimaryButton>
+          </div>
         </div>
         <DisclaimerFooter />
         <TabBar />

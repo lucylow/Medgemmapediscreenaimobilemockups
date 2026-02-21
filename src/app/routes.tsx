@@ -12,6 +12,7 @@ import { ClinicianReview } from "./screens/ClinicianReview";
 import { DemoCases } from "./screens/DemoCases";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { DomainSelect } from "./screens/DomainSelect";
+import { SymptomChecker } from "./screens/SymptomChecker";
 
 export const router = createBrowserRouter([
   {
@@ -65,5 +66,9 @@ export const router = createBrowserRouter([
   {
     path: "/settings",
     Component: SettingsScreen,
+  },
+  {
+    path: "/symptom-checker",
+    Component: SymptomChecker,
   },
 ]);
