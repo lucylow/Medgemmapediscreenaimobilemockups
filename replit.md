@@ -117,8 +117,24 @@ Tab Navigation (persistent on main screens):
 
 ## Key Screens
 - GrowthTracker (`/growth-tracker`) - WHO growth standard tracking with Z-score calculator
+- QRPatientCard (`/qr-card/:childId`) - QR code patient ID card + screening result sharing
+- QRScannerScreen (`/qr-scanner`) - Camera-based QR code scanner for patient lookup
 
 ## Recent Changes
+- 2026-02-21: QR Code Mobile Features
+  - QR Patient Card generator at /qr-card/:childId with qrcode.react library
+  - Patient ID mode: generates scannable QR with child demographics
+  - Screening Result mode: generates QR with risk levels, domain scores, ICD-10 data
+  - QR Scanner at /qr-scanner with BarcodeDetector API + camera integration
+  - Animated scan overlay with corner brackets and sweep line
+  - Auto-detect existing children or create new records from QR data
+  - Share/Print buttons for patient cards using Web Share API
+  - QR code button on each child in Children list
+  - "Share as QR Code" button on Screening Results page
+  - Purple gradient QR Patient Scanner card on Dashboard
+  - "Scan QR" button in Children list footer
+  - Demo mode for devices without camera support
+  - New platform module: qrUtils.ts for QR encode/decode
 - 2026-02-21: Growth Tracker - WHO Growth Standards
   - New Growth Tracker screen at /growth-tracker with real child data integration
   - WHO growth standards data for weight, height, head circumference (0-60 months, boys & girls)

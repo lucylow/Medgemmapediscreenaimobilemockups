@@ -6,7 +6,7 @@ import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
 import {
   ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, XCircle,
-  TrendingUp, Home, ChevronDown, ChevronUp, Stethoscope, Shield, Share2
+  TrendingUp, Home, ChevronDown, ChevronUp, Stethoscope, Shield, Share2, QrCode
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -210,13 +210,22 @@ export function ScreeningResults() {
 
         <div className="px-6 py-4 space-y-2">
           {child && (
-            <PrimaryButton
-              variant="secondary"
-              onClick={() => navigate(`/timeline/${child.id}`)}
-            >
-              <TrendingUp className="w-5 h-5 mr-2 inline" />
-              View Timeline
-            </PrimaryButton>
+            <>
+              <PrimaryButton
+                variant="secondary"
+                onClick={() => navigate(`/timeline/${child.id}`)}
+              >
+                <TrendingUp className="w-5 h-5 mr-2 inline" />
+                View Timeline
+              </PrimaryButton>
+              <button
+                onClick={() => navigate(`/qr-card/${child.id}`)}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#9C27B0] to-[#7B1FA2] text-white rounded-2xl font-bold text-sm active:scale-[0.98] transition-transform min-h-[52px]"
+              >
+                <QrCode className="w-5 h-5" />
+                Share as QR Code
+              </button>
+            </>
           )}
           <PrimaryButton onClick={() => navigate("/children")}>
             <Home className="w-5 h-5 mr-2 inline" />

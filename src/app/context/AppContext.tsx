@@ -22,7 +22,7 @@ interface AppState {
 
 interface AppContextType extends AppState {
   setRole: (role: UserRole) => void;
-  addChild: (child: Omit<Child, "id" | "createdAt">) => Child;
+  addChild: (child: Omit<Child, "id" | "createdAt"> & { id?: string }) => Child;
   updateChild: (child: Child) => void;
   removeChild: (childId: string) => void;
   getChild: (childId: string) => Child | undefined;
@@ -64,10 +64,10 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
     setState((prev) => ({ ...prev, role }));
   }, []);
 
-  const addChild = useCallback((childData: Omit<Child, "id" | "createdAt">): Child => {
+  const addChild = useCallback((childData: Omit<Child, "id" | "createdAt"> & { id?: string }): Child => {
     const child: Child = {
       ...childData,
-      id: storage.generateId(),
+      id: childData.id || storage.generateId(),
       createdAt: new Date().toISOString(),
     };
     storage.saveChild(child);

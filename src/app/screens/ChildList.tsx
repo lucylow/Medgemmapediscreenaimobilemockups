@@ -3,7 +3,7 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Plus, User, ChevronRight, Trash2, Calendar } from "lucide-react";
+import { Plus, User, ChevronRight, Trash2, Calendar, QrCode } from "lucide-react";
 import { TabBar } from "../components/TabBar";
 
 export function ChildList() {
@@ -82,7 +82,16 @@ export function ChildList() {
                       <span>{getAgeText(child.birthDate)}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/qr-card/${child.id}`);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center text-[#1A73E8] active:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <QrCode className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -103,10 +112,19 @@ export function ChildList() {
         </div>
 
         <div className="px-6 py-4 space-y-2">
-          <PrimaryButton onClick={() => navigate("/add-child")}>
-            <Plus className="w-5 h-5 mr-2 inline" />
-            Add Child
-          </PrimaryButton>
+          <div className="grid grid-cols-2 gap-2">
+            <PrimaryButton onClick={() => navigate("/add-child")}>
+              <Plus className="w-5 h-5 mr-1 inline" />
+              Add Child
+            </PrimaryButton>
+            <button
+              onClick={() => navigate("/qr-scanner")}
+              className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#9C27B0] to-[#7B1FA2] text-white rounded-2xl font-bold text-sm active:scale-[0.98] transition-transform min-h-[52px]"
+            >
+              <QrCode className="w-5 h-5" />
+              Scan QR
+            </button>
+          </div>
         </div>
         <DisclaimerFooter />
         <TabBar />
