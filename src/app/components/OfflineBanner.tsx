@@ -18,24 +18,24 @@ export function OfflineBanner() {
         className="overflow-hidden"
       >
         {!isOnline ? (
-          <div style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.15))", borderBottom: "1px solid rgba(245,158,11,0.3)" }} className="text-[#FACC15] px-4 py-2.5">
+          <div className="bg-[#FFF3E0] border-b border-[#FF9800]/30 text-[#E65100] px-4 py-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CloudOff className="w-4 h-4" />
                 <span className="text-sm font-semibold">Offline Mode</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-[#FF9800]">
                 <Database className="w-3.5 h-3.5" />
                 <span className="text-xs">{storageUsage.usageMB}MB</span>
               </div>
             </div>
-            <p className="text-xs text-[#FACC15]/70 mt-0.5">
+            <p className="text-xs text-[#E65100]/70 mt-0.5">
               Full functionality available
               {syncState.pendingCount > 0 && ` · ${syncState.pendingCount} pending sync`}
             </p>
           </div>
         ) : syncState.status === "syncing" ? (
-          <div style={{ background: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(14,165,233,0.1))", borderBottom: "1px solid rgba(56,189,248,0.3)" }} className="text-[#38BDF8] px-4 py-2">
+          <div className="bg-[#E8F0FE] border-b border-[#1A73E8]/30 text-[#1A73E8] px-4 py-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -43,21 +43,21 @@ export function OfflineBanner() {
               </div>
               <span className="text-xs">{syncState.progress}%</span>
             </div>
-            <div className="w-full bg-white/10 rounded-full h-1 mt-1.5">
+            <div className="w-full bg-[#1A73E8]/10 rounded-full h-1 mt-1.5">
               <motion.div
-                className="bg-[#38BDF8] rounded-full h-1"
+                className="bg-[#1A73E8] rounded-full h-1"
                 initial={{ width: 0 }}
                 animate={{ width: `${syncState.progress}%` }}
               />
             </div>
           </div>
         ) : syncState.pendingCount > 0 ? (
-          <div style={{ background: "rgba(34,197,94,0.1)", borderBottom: "1px solid rgba(34,197,94,0.3)" }} className="text-[#22C55E] flex items-center justify-between px-4 py-2 text-sm">
+          <div className="bg-[#E8F5E9] border-b border-[#34A853]/30 text-[#34A853] flex items-center justify-between px-4 py-2 text-sm">
             <div className="flex items-center gap-2">
               <Wifi className="w-4 h-4" />
               <span className="font-semibold">Online</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-[#22C55E]/20 rounded-full px-2.5 py-0.5">
+            <div className="flex items-center gap-1.5 bg-[#34A853]/10 rounded-full px-2.5 py-0.5">
               <span className="text-xs">{syncState.pendingCount} to sync</span>
             </div>
           </div>
