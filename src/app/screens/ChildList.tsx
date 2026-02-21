@@ -4,6 +4,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
 import { Plus, User, ChevronRight, Trash2, Calendar } from "lucide-react";
+import { TabBar } from "../components/TabBar";
 
 export function ChildList() {
   const navigate = useNavigate();
@@ -102,6 +103,7 @@ export function ChildList() {
           </PrimaryButton>
         </div>
         <DisclaimerFooter />
+        <TabBar />
       </div>
     </MobileContainer>
   );

@@ -4,6 +4,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
 import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft } from "lucide-react";
+import { TabBar } from "../components/TabBar";
 import { motion } from "motion/react";
 import {
   RISK_LABELS,
@@ -161,6 +162,7 @@ export function Dashboard() {
           </PrimaryButton>
         </div>
         <DisclaimerFooter />
+        <TabBar />
       </div>
     </MobileContainer>
   );

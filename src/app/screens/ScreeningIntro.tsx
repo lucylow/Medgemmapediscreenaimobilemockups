@@ -39,7 +39,7 @@ export function ScreeningIntro() {
 
   const handleStart = () => {
     const session = startSession(child.id, ageMonths);
-    navigate(`/screening/${session.id}/questions`);
+    navigate(`/screening/${session.id}/domain-select`);
   };
 
   return (

@@ -27,6 +27,7 @@ interface AppContextType extends AppState {
   removeChild: (childId: string) => void;
   getChild: (childId: string) => Child | undefined;
   startSession: (childId: string, ageMonths: number) => ScreeningSession;
+  setSelectedDomains: (domains: DomainType[]) => void;
   setAnswer: (domain: DomainType, questionId: string, answer: AnswerValue) => void;
   setParentConcerns: (text: string) => void;
   submitSession: () => ScreeningResult | null;
@@ -121,6 +122,19 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
     []
   );
 
+  const setSelectedDomains = useCallback((domains: DomainType[]) => {
+    setState((prev) => {
+      if (!prev.currentSession) return prev;
+      const filtered = prev.currentSession.domains.filter((da) =>
+        domains.includes(da.domain)
+      );
+      return {
+        ...prev,
+        currentSession: { ...prev.currentSession, domains: filtered },
+      };
+    });
+  }, []);
+
   const setAnswer = useCallback(
     (domain: DomainType, questionId: string, answer: AnswerValue) => {
       setState((prev) => {
@@ -213,6 +227,7 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
         removeChild,
         getChild,
         startSession,
+        setSelectedDomains,
         setAnswer,
         setParentConcerns,
         submitSession,
