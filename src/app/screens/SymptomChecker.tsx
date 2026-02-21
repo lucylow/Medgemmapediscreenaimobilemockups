@@ -8,7 +8,7 @@ import { CameraCapture } from "../components/CameraCapture";
 import { getMilestonesForAge, getAgeBandLabel, MILESTONE_DOMAIN_META, type MilestoneDomain, type Milestone } from "../data/milestones";
 import { RISK_COLORS, RISK_LABELS, type RiskLevel } from "../data/types";
 import { hapticSelection, hapticImpact, hapticRiskLevel } from "../platform/haptics";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 interface SymptomCheckResult {
   riskLevel: RiskLevel;
