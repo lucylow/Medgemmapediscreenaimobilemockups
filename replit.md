@@ -24,9 +24,13 @@ A React-based pediatric developmental screening application for the MedGemma Imp
 - **Haptic feedback**: Web Vibration API for risk-level-specific feedback, button presses, swipe gestures, and screening submissions
 - **Camera integration**: getUserMedia API for child profile photos with live preview and capture
 - **PIN lock**: 4-digit PIN screen to protect health data (biometric equivalent for web)
-- **Offline indicator**: Real-time online/offline detection with visual banner
+- **Offline-first architecture**: IndexedDB sync queue, Service Worker asset caching, 72hr+ offline capacity
+- **Offline banner**: Real-time online/offline detection with sync progress bar and pending count
+- **Smart sync engine**: Priority-based sync queue with exponential backoff retry (5s→30s→5m→1h→daily)
+- **Impact metrics**: IndexedDB-tracked screening counts, early identification stats, estimated savings
+- **Storage monitoring**: Browser Storage API quota tracking with visual usage bar
 - **Swipe gestures**: Touch swipe navigation between screening questions
-- **PWA support**: Web app manifest + service worker for home screen installation
+- **PWA support**: Web app manifest + enhanced service worker (static + dynamic caching strategies)
 - **Browser notifications**: Notification API for screening result alerts and follow-up reminders
 - **Enhanced touch targets**: 60px+ minimum for CHW field use with gloved hands
 - **Safe area support**: iOS safe area insets for notch/home indicator
@@ -36,10 +40,11 @@ A React-based pediatric developmental screening application for the MedGemma Imp
 - **Styling**: Tailwind CSS v4 with @tailwindcss/vite plugin
 - **UI Libraries**: Radix UI, Lucide icons, Recharts, Framer Motion
 - **Routing**: react-router v7
-- **State**: React Context (AppContext) + localStorage
+- **State**: React Context (AppContext) + localStorage + IndexedDB (offline sync)
+- **Offline**: OfflineContext + SyncEngine + OfflineDB (IndexedDB sync queue, impact metrics)
 - **Package Manager**: pnpm
 - **Build Output**: `dist/`
-- **PWA**: manifest.json + sw.js service worker
+- **PWA**: manifest.json + sw.js service worker (static + dynamic cache)
 
 ## Project Structure
 ```
@@ -50,6 +55,10 @@ src/
     routes.tsx          - Route definitions
     context/
       AppContext.tsx     - Global state management
+    offline/            - Offline-first engine
+      OfflineDB.ts      - IndexedDB wrapper (sync queue, impact metrics, storage)
+      SyncEngine.ts     - Smart sync with priority queue + exponential backoff
+      OfflineContext.tsx - React context for offline state + sync status
     platform/           - Native-like platform APIs
       haptics.ts        - Web Vibration API wrapper (risk-level haptics, impact, selection)
       useCamera.ts      - getUserMedia hook for photo capture
@@ -62,7 +71,7 @@ src/
       RiskBanner        - Risk level banner
       DisclaimerFooter  - Safety disclaimer
       TabBar            - Bottom tab navigation with haptics + 60px targets
-      OfflineBanner     - Connection status indicator
+      OfflineBanner     - Connection status + sync progress indicator
       CameraCapture     - Full-screen camera capture overlay
       ui/               - shadcn/ui components
     screens/
@@ -121,6 +130,21 @@ Tab Navigation (persistent on main screens):
 - QRScannerScreen (`/qr-scanner`) - Camera-based QR code scanner for patient lookup
 
 ## Recent Changes
+- 2026-02-21: Offline-First Architecture
+  - Enhanced Service Worker (sw.js) with static + dynamic caching strategies
+  - IndexedDB-based offline engine: OfflineDB.ts with sync queue, impact metrics, offline log
+  - Smart SyncEngine with priority-based queue (referral=1, urgent=2, monitor=3, on_track=4)
+  - Exponential backoff retry: 5s → 30s → 5min → 1hr → daily
+  - OfflineContext provider with sync state, storage metrics, impact totals
+  - Enhanced OfflineBanner: offline mode (orange), syncing progress (blue), pending count (green)
+  - Dashboard Offline Status card: local records, MB stored, pending sync, service worker status
+  - Dashboard Local Impact section: estimated savings, children screened, early identified
+  - Settings Offline & Sync section: storage bar, quota %, cached assets, sync status, SW status
+  - Impact metrics auto-tracked on screening submission (IndexedDB)
+  - Screening actions logged to IndexedDB offline log
+  - Storage API quota monitoring with visual progress bar
+  - Version bumped to 1.2.0 — Offline-First
+  - Platform capability badges updated: Offline-First, Sync Queue, IndexedDB
 - 2026-02-21: QR Code Mobile Features
   - QR Patient Card generator at /qr-card/:childId with qrcode.react library
   - Patient ID mode: generates scannable QR with child demographics

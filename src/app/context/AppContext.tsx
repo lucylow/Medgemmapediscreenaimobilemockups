@@ -11,6 +11,7 @@ import {
 import { getQuestionsForAge } from "../data/questions";
 import { evaluateScreening } from "../data/screeningEngine";
 import * as storage from "../data/storage";
+import { incrementScreeningMetric, addOfflineLog } from "../offline/OfflineDB";
 
 interface AppState {
   role: UserRole | null;
@@ -176,6 +177,10 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
 
     const result = evaluateScreening(submittedSession);
     storage.saveResult(result);
+
+    const isHighRisk = result.overallRisk === "refer" || result.overallRisk === "discuss";
+    incrementScreeningMetric(isHighRisk).catch(() => {});
+    addOfflineLog("screening", `Completed screening for child ${session.childId} — ${result.overallRisk}`).catch(() => {});
 
     setState((prev) => ({
       ...prev,

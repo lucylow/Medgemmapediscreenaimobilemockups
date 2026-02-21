@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { RouterProvider } from "react-router";
 import { router } from "./routes";
 import { AppProvider } from "./context/AppContext";
+import { OfflineProvider } from "./offline/OfflineContext";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { PinLock, isPinEnabled, getSavedPin } from "./screens/PinLock";
 
@@ -16,17 +17,19 @@ export default function App() {
 
   if (locked) {
     return (
-      <div>
+      <OfflineProvider>
         <OfflineBanner />
         <PinLock onUnlock={() => setLocked(false)} mode="verify" />
-      </div>
+      </OfflineProvider>
     );
   }
 
   return (
     <AppProvider>
-      <OfflineBanner />
-      <RouterProvider router={router} />
+      <OfflineProvider>
+        <OfflineBanner />
+        <RouterProvider router={router} />
+      </OfflineProvider>
     </AppProvider>
   );
 }

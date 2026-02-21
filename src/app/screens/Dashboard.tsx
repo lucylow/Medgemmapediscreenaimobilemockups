@@ -3,7 +3,7 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope, Camera, Ruler, QrCode } from "lucide-react";
+import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope, Camera, Ruler, QrCode, CloudOff, Wifi, Database, Shield } from "lucide-react";
 import { TabBar } from "../components/TabBar";
 import { motion } from "motion/react";
 import {
@@ -13,10 +13,13 @@ import {
   DOMAIN_LABELS,
   DOMAIN_ICONS,
 } from "../data/types";
+import { useOffline } from "../offline/OfflineContext";
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { children, results, sessions, role } = useApp();
+
+  const { isOnline, syncState, storageUsage, swReady, cachedAssets, totalScreened, totalIdentified, totalSavings } = useOffline();
 
   const riskCounts: Record<RiskLevel, number> = { on_track: 0, monitor: 0, discuss: 0, refer: 0 };
   results.forEach((r) => { riskCounts[r.overallRisk]++; });
@@ -119,6 +122,51 @@ export function Dashboard() {
               </p>
             </div>
           )}
+
+          <div className="rounded-2xl border-2 border-gray-100 bg-white p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Offline Status</h2>
+              <div className="flex items-center gap-1.5">
+                {isOnline ? (
+                  <><Wifi className="w-3.5 h-3.5 text-[#34A853]" /><span className="text-xs text-[#34A853] font-semibold">Online</span></>
+                ) : (
+                  <><CloudOff className="w-3.5 h-3.5 text-[#FF9800]" /><span className="text-xs text-[#FF9800] font-semibold">Offline</span></>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-[#F0F7FF] rounded-xl p-2.5 text-center">
+                <div className="text-lg font-bold text-[#1A73E8]">{children.length + results.length}</div>
+                <div className="text-[10px] text-[#666666]">Local Records</div>
+              </div>
+              <div className="bg-[#F0FFF4] rounded-xl p-2.5 text-center">
+                <div className="text-lg font-bold text-[#34A853]">{storageUsage.usageMB}</div>
+                <div className="text-[10px] text-[#666666]">MB Stored</div>
+              </div>
+              <div className="bg-[#FFF8E1] rounded-xl p-2.5 text-center">
+                <div className="text-lg font-bold text-[#FF9800]">{syncState.pendingCount}</div>
+                <div className="text-[10px] text-[#666666]">Pending Sync</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-[#666666]">
+              <Shield className="w-3.5 h-3.5 text-[#34A853]" />
+              <span>{swReady ? "Service Worker active · Full offline ready" : "Preparing offline cache..."}</span>
+            </div>
+            {totalScreened > 0 && (
+              <div className="bg-gradient-to-r from-[#E8F5E9] to-[#F1F8E9] rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-[#2E7D32]">Local Impact</p>
+                    <p className="text-lg font-bold text-[#1B5E20]">${totalSavings.toLocaleString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-[#666666]">{totalScreened} screened</p>
+                    <p className="text-xs text-[#666666]">{totalIdentified} identified</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div>
             <h2 className="text-lg font-bold text-[#1A1A1A] mb-3">Children</h2>
