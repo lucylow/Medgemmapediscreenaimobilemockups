@@ -1,5 +1,5 @@
 import { useOffline } from "../offline/OfflineContext";
-import { WifiOff, Wifi, CloudOff, RefreshCw, Database, CheckCircle } from "lucide-react";
+import { WifiOff, Wifi, CloudOff, RefreshCw, Database } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export function OfflineBanner() {
@@ -18,7 +18,7 @@ export function OfflineBanner() {
         className="overflow-hidden"
       >
         {!isOnline ? (
-          <div className="bg-gradient-to-r from-[#FF9800] to-[#F57C00] text-white px-4 py-2.5">
+          <div style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.15))", borderBottom: "1px solid rgba(245,158,11,0.3)" }} className="text-[#FACC15] px-4 py-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CloudOff className="w-4 h-4" />
@@ -26,16 +26,16 @@ export function OfflineBanner() {
               </div>
               <div className="flex items-center gap-2">
                 <Database className="w-3.5 h-3.5" />
-                <span className="text-xs">{storageUsage.usageMB}MB stored</span>
+                <span className="text-xs">{storageUsage.usageMB}MB</span>
               </div>
             </div>
-            <p className="text-xs text-white/80 mt-0.5">
-              Full functionality available · Data saved locally
+            <p className="text-xs text-[#FACC15]/70 mt-0.5">
+              Full functionality available
               {syncState.pendingCount > 0 && ` · ${syncState.pendingCount} pending sync`}
             </p>
           </div>
         ) : syncState.status === "syncing" ? (
-          <div className="bg-gradient-to-r from-[#1A73E8] to-[#4285F4] text-white px-4 py-2">
+          <div style={{ background: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(14,165,233,0.1))", borderBottom: "1px solid rgba(56,189,248,0.3)" }} className="text-[#38BDF8] px-4 py-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -43,21 +43,21 @@ export function OfflineBanner() {
               </div>
               <span className="text-xs">{syncState.progress}%</span>
             </div>
-            <div className="w-full bg-white/20 rounded-full h-1 mt-1.5">
+            <div className="w-full bg-white/10 rounded-full h-1 mt-1.5">
               <motion.div
-                className="bg-white rounded-full h-1"
+                className="bg-[#38BDF8] rounded-full h-1"
                 initial={{ width: 0 }}
                 animate={{ width: `${syncState.progress}%` }}
               />
             </div>
           </div>
         ) : syncState.pendingCount > 0 ? (
-          <div className="bg-[#34A853] text-white flex items-center justify-between px-4 py-2 text-sm">
+          <div style={{ background: "rgba(34,197,94,0.1)", borderBottom: "1px solid rgba(34,197,94,0.3)" }} className="text-[#22C55E] flex items-center justify-between px-4 py-2 text-sm">
             <div className="flex items-center gap-2">
               <Wifi className="w-4 h-4" />
               <span className="font-semibold">Online</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-2.5 py-0.5">
+            <div className="flex items-center gap-1.5 bg-[#22C55E]/20 rounded-full px-2.5 py-0.5">
               <span className="text-xs">{syncState.pendingCount} to sync</span>
             </div>
           </div>

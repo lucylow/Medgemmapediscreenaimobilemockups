@@ -1,0 +1,703 @@
+Global Role & Design Direction
+You are a senior React Native UI/UX engineer and motion designer building the PediScreen AI mobile app for iOS and Android with Expo + TypeScript.
+Your goals:
+Make the app feel like a polished consumer health product, not a hackathon demo.
+Use:
+Smooth transitions and micro‑animations.
+Glassy cards and soft depth (blur, shadows, layered panels).
+Gentle motion (springs, fades) to guide attention.
+Support parents, CHWs, and clinicians in:
+Selecting a child profile.
+Running a developmental screening session.
+Viewing AI‑assisted screening results.
+Browsing longitudinal timelines.
+Rely on mock/demo data, not real APIs, so the UI runs standalone.
+You implement:
+Screen layouts.
+Component hierarchies.
+Navigation (stack + tabs) and micro‑interactions.
+Visual design system (colors, typography, spacing).
+Mock data hooks and in‑memory stores.
+You do not implement real backend calls; instead, you simulate them and mark integration points with clear TODO comments.
+
+Visual Design System
+Brand Feel
+Warm, calm, and trustworthy pediatric vibe.
+Think “modern pediatric clinic”: soft gradient backgrounds, rounded cards, subtle glassmorphism.
+Visual goals:
+Reassuring for anxious parents.
+Precise enough for CHWs/clinicians.
+Colors
+Create a centralized palette in src/theme/colors.ts:
+ts
+export const colors = {
+  background: '#050814', // deep indigo
+  backgroundAlt: '#070B1C',
+  surface: 'rgba(15,23,42,0.85)', // glassy navy
+  surfaceElevated: 'rgba(15,23,42,0.95)',
+  cardGlass: 'rgba(148,163,184,0.14)',
+  borderSoft: 'rgba(148,163,184,0.4)',
+
+  primary: '#38BDF8',       // sky-400
+  primarySoft: '#0EA5E9',   // sky-500
+  primaryMuted: '#082F49',  // deep sky
+
+  accent: '#A855F7',        // purple-500
+  accentSoft: '#7C3AED',    // purple-600
+
+  success: '#22C55E',
+  warning: '#FACC15',
+  danger: '#EF4444',
+  info: '#38BDF8',
+
+  textPrimary: '#E5E7EB',
+  textSecondary: '#9CA3AF',
+  textMuted: '#6B7280',
+};
+
+Typography
+In src/theme/typography.ts:
+ts
+export const typography = {
+  display: {
+    fontFamily: 'System',
+    fontSize: 28,
+    fontWeight: '700' as const,
+  },
+  title: {
+    fontFamily: 'System',
+    fontSize: 22,
+    fontWeight: '600' as const,
+  },
+  headline: {
+    fontFamily: 'System',
+    fontSize: 18,
+    fontWeight: '600' as const,
+  },
+  body: {
+    fontFamily: 'System',
+    fontSize: 15,
+    fontWeight: '400' as const,
+  },
+  caption: {
+    fontFamily: 'System',
+    fontSize: 12,
+    fontWeight: '400' as const,
+  },
+};
+
+Spacing & Radius
+src/theme/spacing.ts:
+ts
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+};
+
+export const radius = {
+  sm: 8,
+  md: 12,
+  lg: 18,
+  pill: 999,
+};
+
+Shadows & Elevation
+src/theme/shadows.ts:
+ts
+import { Platform } from 'react-native';
+
+export const shadows = {
+  soft: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOpacity: 0.18,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 20,
+    },
+    android: {
+      elevation: 6,
+    },
+  }),
+};
+
+
+Layout & Navigation Skeleton
+Use a stack + tabs approach:
+Root stack:
+Welcome
+RoleSelect
+MainTabs (with nested tabs)
+Screening flow screens.
+Tab navigator:
+Home
+Timeline
+Demo
+Settings
+App.tsx:
+tsx
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { ThemeProvider } from './src/theme/ThemeProvider';
+import { ChildrenProvider } from './src/state/ChildrenContext';
+import { ScreeningSessionProvider } from './src/state/ScreeningSessionContext';
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <NavigationContainer>
+        <ChildrenProvider>
+          <ScreeningSessionProvider>
+            <RootNavigator />
+          </ScreeningSessionProvider>
+        </ChildrenProvider>
+      </NavigationContainer>
+    </ThemeProvider>
+  );
+}
+
+src/navigation/RootNavigator.tsx (high‑level):
+tsx
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import WelcomeScreen from '../screens/WelcomeScreen';
+import RoleSelectScreen from '../screens/RoleSelectScreen';
+import HomeScreen from '../screens/HomeScreen';
+import TimelineScreen from '../screens/TimelineScreen';
+import DemoScreen from '../screens/DemoScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import ScreeningIntroScreen from '../screens/ScreeningIntroScreen';
+// ...other screening screens
+
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#020617',
+          borderTopColor: 'rgba(148,163,184,0.4)',
+        },
+        tabBarActiveTintColor: '#38BDF8',
+        tabBarInactiveTintColor: '#6B7280',
+      }}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Timeline" component={TimelineScreen} />
+      <Tab.Screen name="Demo" component={DemoScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
+    </Tab.Navigator>
+  );
+}
+
+export const RootNavigator = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Welcome" component={WelcomeScreen} />
+    <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
+    <Stack.Screen name="MainTabs" component={MainTabs} />
+    <Stack.Screen name="ScreeningIntro" component={ScreeningIntroScreen} />
+    {/* ScreeningDomainSelect, ScreeningQuestions, etc. */}
+  </Stack.Navigator>
+);
+
+
+Shared Layout Components
+Create a glassy base container used across screens.
+src/components/layout/ScreenContainer.tsx:
+tsx
+import React from 'react';
+import { View, StyleSheet, StatusBar, ScrollView } from 'react-native';
+import { colors } from '../../theme/colors';
+import { spacing } from '../../theme/spacing';
+
+interface Props {
+  children: React.ReactNode;
+  scroll?: boolean;
+}
+
+export const ScreenContainer: React.FC<Props> = ({ children, scroll }) => {
+  const content = (
+    <View style={styles.inner}>
+      {children}
+    </View>
+  );
+
+  return (
+    <View style={styles.outer}>
+      <StatusBar barStyle="light-content" />
+      {/* Background gradient layer */}
+      <View style={styles.gradientOverlay} />
+      {scroll ? <ScrollView contentContainerStyle={styles.scroll}>{content}</ScrollView> : content}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  outer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  gradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'linear-gradient(180deg, #020617 0%, #020617 40%, #0F172A 100%)' as any,
+  },
+  inner: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
+  scroll: {
+    flexGrow: 1,
+  },
+});
+
+For React Native you may instead use expo-linear-gradient for the background; mark as TODO where necessary.
+
+WelcomeScreen – Hero & Motion
+Goals:
+Intro PediScreen AI with a hero card and gentle motion.
+Show a primary CTA “Get started”.
+Use Animated from react-native or Reanimated if desired.
+src/screens/WelcomeScreen.tsx (simplified):
+tsx
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Pressable } from 'react-native';
+import { ScreenContainer } from '../components/layout/ScreenContainer';
+import { colors } from '../theme/colors';
+import { typography } from '../theme/typography';
+import { spacing, radius } from '../theme/spacing';
+import { useNavigation } from '@react-navigation/native';
+
+const WelcomeScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const scale = useRef(new Animated.Value(0.9)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <ScreenContainer>
+      <View style={styles.headerRow}>
+        <Text style={styles.brand}>PediScreen AI</Text>
+        <View style={styles.betaPill}>
+          <Text style={styles.betaText}>MedGemma Challenge</Text>
+        </View>
+      </View>
+
+      <Animated.View style={[styles.heroCard, { transform: [{ scale }], opacity }]}>
+        <Text style={styles.heroTitle}>Gentle screening support for your child’s development.</Text>
+        <Text style={styles.heroBody}>
+          Answer a few questions about how your child plays, moves, talks, and connects. Get a
+          screening summary to share with your care team.
+        </Text>
+        <View style={styles.heroGradientOverlay} />
+      </Animated.View>
+
+      <View style={styles.footer}>
+        <Pressable
+          onPress={() => navigation.navigate('RoleSelect')}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            { opacity: pressed ? 0.9 : 1 },
+          ]}
+        >
+          <Text style={styles.primaryButtonText}>Get started</Text>
+        </Pressable>
+
+        <Text style={styles.disclaimer}>
+          PediScreen AI supports developmental screening only and does not make diagnoses. Always
+          discuss concerns with a licensed health professional.
+        </Text>
+      </View>
+    </ScreenContainer>
+  );
+};
+
+const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  brand: {
+    ...typography.display,
+    color: colors.textPrimary,
+  },
+  betaPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.cardGlass,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+  betaText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  heroCard: {
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    backgroundColor: colors.cardGlass,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.3)',
+    overflow: 'hidden',
+  },
+  heroGradientOverlay: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(56,189,248,0.25)',
+  },
+  heroTitle: {
+    ...typography.title,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  heroBody: {
+    ...typography.body,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  footer: {
+    marginTop: 'auto',
+    gap: spacing.md,
+  },
+  primaryButton: {
+    borderRadius: radius.pill,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    ...typography.headline,
+    color: '#0B1120',
+  },
+  disclaimer: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+});
+
+export default WelcomeScreen;
+
+
+RoleSelect & Home Screen – Cards & Micro‑interactions
+RoleSelectScreen
+Three large, glassy tiles:
+Parent/caregiver.
+Community health worker.
+Clinician (demo).
+Each tile has icon, short description, and subtle press animation.
+Use Pressable with scale on press.
+HomeScreen
+“Child selector” at top with horizontally scrollable child chips.
+CTA card: “Start a new screening”.
+Section: “Recent screenings” as shimmering tiles.
+Micro‑interaction: when selecting a child chip, animate the highlight and update content.
+Example child chip component:
+tsx
+// src/components/ui/ChildChip.tsx
+import React from 'react';
+import { Pressable, Text, StyleSheet, Animated } from 'react-native';
+import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
+import { spacing, radius } from '../../theme/spacing';
+
+interface Props {
+  name: string;
+  ageLabel: string;
+  selected?: boolean;
+  onPress: () => void;
+}
+
+export const ChildChip: React.FC<Props> = ({ name, ageLabel, selected, onPress }) => {
+  const bg = selected ? colors.primaryMuted : 'rgba(15,23,42,0.9)';
+  const border = selected ? colors.primarySoft : 'rgba(148,163,184,0.3)';
+
+  return (
+    <Pressable onPress={onPress} style={[styles.chip, { backgroundColor: bg, borderColor: border }]}>
+      <Text style={styles.name}>{name}</Text>
+      <Text style={styles.age}>{ageLabel}</Text>
+    </Pressable>
+  );
+};
+
+const styles = StyleSheet.create({
+  chip: {
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    marginRight: spacing.sm,
+    borderWidth: 1,
+  },
+  name: {
+    ...typography.body,
+    color: colors.textPrimary,
+  },
+  age: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+});
+
+
+Screening Flow UI
+ScreeningIntroScreen
+Show selected child with gentle avatar (initials in a circle).
+Quick facts: age in months, last screening date.
+Progress pill: “Step 1 of 4 – Intro”.
+Domain Selection Screen
+Grid of glass cards, each for a domain (Communication, Gross Motor, etc.).
+Each card:
+Icon.
+Domain name.
+Short description.
+Soft accent gradient.
+Micro‑interaction: On focus or selection, animate card elevation and show subtle glow border.
+ScreeningQuestionsScreen
+Vertical scroll of QuestionCards.
+At top: domain pill (e.g., Communication) with color-coded accent.
+Progress bar: “3/7 questions answered”.
+Bottom CTA: “Next domain” button that pulses gently when all questions answered.
+Add simple progress bar:
+tsx
+// src/components/screening/DomainProgressBar.tsx
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { colors } from '../../theme/colors';
+
+interface Props {
+  completed: number;
+  total: number;
+}
+
+export const DomainProgressBar: React.FC<Props> = ({ completed, total }) => {
+  const fraction = total > 0 ? completed / total : 0;
+  return (
+    <View style={styles.outer}>
+      <View style={[styles.inner, { width: `${fraction * 100}%` }]} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  outer: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(148,163,184,0.4)',
+    overflow: 'hidden',
+  },
+  inner: {
+    height: '100%',
+    backgroundColor: colors.primarySoft,
+  },
+});
+
+ScreeningMediaScreen
+Large dashed card area: “Add a photo or drawing”.
+Use an icon (e.g., camera, sketchpad).
+Buttons:
+“Take photo” (TODO).
+“Choose from gallery” (TODO).
+For demo, show placeholder image and set MediaAttachment with static uri.
+
+Results & Timeline
+ScreeningResultScreen
+Goals:
+Hero summary at top.
+Per‑domain cards with risk badges.
+Animated transitions: card slide‑up on entry, risk badge fade‑in.
+Layout:
+Hero card with:
+“Screening summary” title.
+Overall RiskBadge.
+1–2 lines of plain‑language parent summary.
+Domain cards in a vertical list; each card can expand to show details.
+Example domain card:
+tsx
+// src/components/screening/ResultCard.tsx
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { RiskBadge } from '../ui/RiskBadge';
+import { DomainRiskSummary } from '../../api/types';
+import { colors } from '../../theme/colors';
+import { spacing, radius } from '../../theme/spacing';
+import { typography } from '../../theme/typography';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+interface Props {
+  domainRisk: DomainRiskSummary;
+}
+
+export const ResultCard: React.FC<Props> = ({ domainRisk }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((x) => !x);
+  };
+
+  return (
+    <Pressable onPress={toggle} style={styles.card}>
+      <View style={styles.headerRow}>
+        <Text style={styles.domainText}>{domainRisk.domain}</Text>
+        <RiskBadge risk={domainRisk.risk} />
+      </View>
+      <Text style={styles.parentSummary}>{domainRisk.parentSummary}</Text>
+      {expanded && (
+        <View style={styles.expanded}>
+          <Text style={styles.label}>Clinician notes</Text>
+          <Text style={styles.summary}>{domainRisk.summary}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+};
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.cardGlass,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  domainText: {
+    ...typography.headline,
+    textTransform: 'capitalize',
+    color: colors.textPrimary,
+  },
+  parentSummary: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  expanded: {
+    marginTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148,163,184,0.2)',
+    paddingTop: spacing.sm,
+  },
+  label: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginBottom: 4,
+  },
+  summary: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+});
+
+TimelineScreen
+Vertical timeline of screenings with:
+Date.
+Age label (“24 months”).
+Overall risk badge.
+Micro‑interaction:
+A vertical line with circular nodes; when a node is tapped, expand that item.
+Use FlatList and simple custom timeline visuals; you don’t need heavy chart libraries.
+
+Demo & Mock Data
+In‑Memory “Store” with Context
+Use context hooks to provide mock children, mock screenings, mock results.
+src/state/ChildrenContext.tsx:
+tsx
+import React, { createContext, useState, useContext } from 'react';
+import { Child } from '../api/types';
+
+interface ChildrenContextValue {
+  children: Child[];
+  addChild: (child: Child) => void;
+}
+
+const ChildrenContext = createContext<ChildrenContextValue>({} as any);
+
+const INITIAL_CHILDREN: Child[] = [
+  {
+    id: 'child_1',
+    displayName: 'Amina',
+    birthDate: '2023-04-01',
+    sex: 'female',
+    primaryLanguage: 'English',
+  },
+  {
+    id: 'child_2',
+    displayName: 'Leo',
+    birthDate: '2022-10-15',
+    sex: 'male',
+  },
+];
+
+export const ChildrenProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [state, setState] = useState<Child[]>(INITIAL_CHILDREN);
+
+  const addChild = (child: Child) => setState((prev) => [...prev, child]);
+
+  return (
+    <ChildrenContext.Provider value={{ children: state, addChild }}>
+      {children}
+    </ChildrenContext.Provider>
+  );
+};
+
+export const useChildren = () => useContext(ChildrenContext);
+
+Mock Screening Flow
+Instead of calling a real backend, create a simple mockSubmitScreening function that:
+Takes the current ScreeningSession.
+Infers a risk profile based on answers (e.g., count of “not_yet”).
+Returns a fake ScreeningResult with hardcoded language.
+This keeps the React Native app fully interactive, with no network dependency.
+
+Micro‑Interactions & Motion Summary
+Integrate small, tasteful animations:
+Welcome hero: scale and fade in.
+Domain cards: scale up slightly on press, subtle shadow.
+Progress transitions: LayoutAnimation when expanding result cards.
+Buttons: Opacity/scale on press.
+Avoid heavy, distracting motion; the tone is calm and clinical.
+
+Final Deliverable Behavior
+When the coding assistant implements this prompt, the resulting app should:
+Launch into a beautiful welcome screen with brand hero.
+Let the user pick their role.
+Show a Home tab with:
+Child chips.
+A “Start screening” CTA card.
+A short list of recent mock screenings.
+Support a full screening flow:
+Intro → Domain selection → Questions → Media (mock) → Review → Result.
+Show a rich, interactive results view with glassy domain cards and risk badges.
+Provide a Timeline tab showing historical mock screenings.
+Provide a Demo tab with pre‑seeded cases for the challenge demo.
+Use only local mock data; no real backend necessary, but clear TODOs mark integration points.
+All code should be TypeScript, use the centralized theme, and follow the safety constraint that language remains screening‑level, non‑diagnostic throughout the UI.
+
