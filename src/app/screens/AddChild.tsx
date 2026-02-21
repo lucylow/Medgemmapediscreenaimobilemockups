@@ -2,8 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { CameraCapture } from "../components/CameraCapture";
 import { useApp } from "../context/AppContext";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Camera, User } from "lucide-react";
+import { hapticImpact, hapticNotification } from "../platform/haptics";
+import { AnimatePresence } from "motion/react";
 
 export function AddChild() {
   const navigate = useNavigate();
@@ -11,6 +14,8 @@ export function AddChild() {
   const [displayName, setDisplayName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [sex, setSex] = useState<"male" | "female" | "other" | "prefer_not_to_say">("prefer_not_to_say");
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   const maxDate = new Date().toISOString().split("T")[0];
   const fiveYearsAgo = new Date();
@@ -21,10 +26,12 @@ export function AddChild() {
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+    hapticNotification("success");
     const child = addChild({
       displayName: displayName.trim(),
       birthDate,
       sex,
+      photo: photo || undefined,
     });
     navigate(`/child/${child.id}/screening-intro`);
   };
@@ -47,6 +54,30 @@ export function AddChild() {
             Enter your child's information to start their developmental screening. 
             You can use a nickname — we keep things private.
           </p>
+
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                hapticImpact("light");
+                setShowCamera(true);
+              }}
+              className="relative w-24 h-24 rounded-full overflow-hidden border-3 border-dashed border-gray-300 flex items-center justify-center bg-[#F8F9FA] active:scale-95 transition-transform"
+            >
+              {photo ? (
+                <img src={photo} alt="Child" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center gap-1">
+                  <Camera className="w-6 h-6 text-[#999999]" />
+                  <span className="text-[10px] text-[#999999] font-semibold">Add Photo</span>
+                </div>
+              )}
+              {photo && (
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <Camera className="w-5 h-5 text-white" />
+                </div>
+              )}
+            </button>
+          </div>
 
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-[#1A1A1A]">
@@ -115,6 +146,18 @@ export function AddChild() {
           </PrimaryButton>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showCamera && (
+          <CameraCapture
+            onCapture={(dataUrl) => {
+              setPhoto(dataUrl);
+              setShowCamera(false);
+            }}
+            onClose={() => setShowCamera(false)}
+          />
+        )}
+      </AnimatePresence>
     </MobileContainer>
   );
 }

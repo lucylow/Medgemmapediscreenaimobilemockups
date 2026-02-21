@@ -64,10 +64,16 @@ export function ChildList() {
                   className="bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform"
                   onClick={() => navigate(`/child/${child.id}/screening-intro`)}
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#1A73E8] to-[#34A853] rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold text-lg">
-                      {child.displayName.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {child.photo ? (
+                      <img src={child.photo} alt={child.displayName} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#1A73E8] to-[#34A853] flex items-center justify-center">
+                        <span className="text-white font-bold text-lg">
+                          {child.displayName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-[#1A1A1A] truncate">{child.displayName}</h3>

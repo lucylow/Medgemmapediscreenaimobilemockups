@@ -13,6 +13,8 @@ import {
   DOMAIN_ICONS,
   DOMAIN_COLORS,
 } from "../data/types";
+import { useSwipeGesture } from "../platform/useSwipeGesture";
+import { hapticImpact, hapticNotification } from "../platform/haptics";
 
 export function ScreeningQuestions() {
   const navigate = useNavigate();
@@ -46,7 +48,17 @@ export function ScreeningQuestions() {
 
   const isLastQuestion = domainIdx === domains.length - 1 && questionIdx === currentDomain.questions.length - 1;
 
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: () => {
+      if (!isLastQuestion) goNext();
+    },
+    onSwipeRight: () => {
+      if (canGoPrev) goPrev();
+    },
+  });
+
   const handleAnswer = (answer: AnswerValue) => {
+    hapticImpact("medium");
     setAnswer(currentDomain.domain, currentQuestion.id, answer);
     setTimeout(() => goNext(), 300);
   };
@@ -120,7 +132,7 @@ export function ScreeningQuestions() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center px-6 py-8">
+        <div className="flex-1 flex flex-col justify-center px-6 py-8" {...swipeHandlers}>
           <AnimatePresence mode="wait">
             <motion.div
               key={currentQuestion.id}

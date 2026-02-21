@@ -14,6 +14,7 @@ export interface Child {
   birthDate: string;
   sex?: "male" | "female" | "other" | "prefer_not_to_say";
   primaryLanguage?: string;
+  photo?: string;
   createdAt: string;
 }
 

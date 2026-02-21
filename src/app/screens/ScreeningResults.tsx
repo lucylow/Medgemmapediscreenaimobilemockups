@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -16,6 +16,8 @@ import {
   RISK_LABELS,
   RISK_COLORS,
 } from "../data/types";
+import { hapticRiskLevel, hapticImpact } from "../platform/haptics";
+import { sendRiskAlert } from "../platform/notifications";
 
 const riskIcons: Record<RiskLevel, typeof CheckCircle> = {
   on_track: CheckCircle,
@@ -33,6 +35,15 @@ export function ScreeningResults() {
   const result = results.find((r) => r.sessionId === sessionId);
   const session = sessions.find((s) => s.id === sessionId);
   const child = result ? getChild(result.childId) : undefined;
+
+  useEffect(() => {
+    if (result) {
+      hapticRiskLevel(result.overallRisk);
+      if (child) {
+        sendRiskAlert(child.displayName, result.overallRisk);
+      }
+    }
+  }, [result?.sessionId]);
 
   if (!result) {
     return (
