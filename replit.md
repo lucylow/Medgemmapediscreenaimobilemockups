@@ -7,11 +7,16 @@ A React-based pediatric developmental screening application for the MedGemma Imp
 - **Role-based entry**: Parent/Caregiver, CHW, or Clinician demo mode
 - **Child management**: Add/edit/delete child profiles with localStorage persistence
 - **Screening flow**: ASQ-3 inspired questions across 5 developmental domains (Communication, Gross Motor, Fine Motor, Personal-Social, Problem Solving) with age-appropriate question banks (0-11mo, 12-17mo, 18-23mo, 24-35mo, 36-60mo)
+- **Domain selection**: Choose which developmental areas to screen before starting
 - **AI-assisted results**: Screening engine evaluates answers and generates risk levels (On Track, Monitor, Discuss, Refer) with parent-friendly summaries and clinician drafts
-- **Timeline/history**: View past screenings per child with trend tracking
+- **Expandable clinician section**: Results include collapsible "For Your Clinician" with AI-generated draft and safety validation
+- **Consent gating**: Screening submission requires explicit consent checkbox
+- **Timeline/history**: View past screenings per child with risk trend chart
 - **Clinician review demo**: Shows AI draft vs clinician-approved text (HITL pipeline)
-- **Demo data loader**: Pre-loads 4 sample children with varied risk profiles
-- **Safety**: Disclaimer footers, non-diagnostic language throughout
+- **Demo cases**: 4 preconfigured risk scenarios for instant demonstration
+- **Settings**: Mock API toggle, clear data, privacy info, app version
+- **Bottom tab navigation**: Home, Children, Demo, Settings tabs
+- **Safety**: Disclaimer footers, non-diagnostic language throughout, safety flags on results
 
 ## Project Architecture
 - **Framework**: React 18 + Vite 6
@@ -36,25 +41,28 @@ src/
       PrimaryButton     - Reusable button
       RiskBanner        - Risk level banner
       DisclaimerFooter  - Safety disclaimer
+      TabBar            - Bottom tab navigation
       ui/               - shadcn/ui components
     screens/
       Welcome           - Landing with role selection
       ChildList          - Child management list
       AddChild           - Add child form
       ScreeningIntro     - Pre-screening info
+      DomainSelect       - Domain selection before questions
       ScreeningQuestions - Question flow
-      ScreeningSummary   - Review & submit
-      ScreeningResults   - Results display
-      Timeline           - Screening history
+      ScreeningSummary   - Review & submit with consent
+      ScreeningResults   - Results with clinician section
+      Timeline           - Screening history with trend chart
       Dashboard          - Overview dashboard
       ClinicianReview    - Clinician demo view
+      DemoCases          - Preset risk scenario demos
+      SettingsScreen     - App settings & privacy
     data/
       types.ts          - TypeScript interfaces
       storage.ts        - localStorage CRUD
       questions.ts      - ASQ-3 inspired question banks
       screeningEngine.ts - Scoring & result generation
       demoData.ts       - Demo data loader
-      mockData.ts       - Legacy mock data
   styles/               - CSS files
 ```
 
@@ -62,9 +70,11 @@ src/
 ```
 Welcome (role select) →
   Parent/CHW → Children List → Add Child → Screening Intro →
-    Questions (per domain) → Summary → Submit → Results → Timeline
+    Domain Select → Questions (per domain) → Summary (with consent) → Submit → Results → Timeline
   Clinician → Clinician Review (demo)
-  Dashboard (accessible from Children List)
+
+Tab Navigation (persistent on main screens):
+  Home (Dashboard) | Children | Demo Cases | Settings
 ```
 
 ## Development
@@ -73,11 +83,13 @@ Welcome (role select) →
 - Output goes to `dist/`
 
 ## Recent Changes
-- 2026-02-21: Full feature implementation
-  - Built complete screening flow with real ASQ-3 inspired questions
-  - Added screening engine with scoring and risk assessment
-  - Added child management with localStorage persistence
-  - Added role selection, clinician review demo, disclaimer footers
-  - Added demo data loader with 4 sample children
-  - Connected all screens to real data through AppContext
-  - Replaced static mockup navigation with functional flow
+- 2026-02-21: Enhanced mobile app functionality
+  - Added bottom tab navigation bar (Home, Children, Demo, Settings)
+  - Created Settings screen with mock API toggle, clear data, privacy info
+  - Created Demo Cases screen with 4 preset risk scenarios
+  - Added Domain Selection screen between intro and questions
+  - Added consent checkbox gating on screening submission
+  - Enhanced Results with expandable "For Your Clinician" section + safety flags
+  - Added risk trend chart to Timeline view
+  - Added edit answers link on review screen
+  - All features use real data through AppContext + localStorage

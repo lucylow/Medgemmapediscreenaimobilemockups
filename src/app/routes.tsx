@@ -9,6 +9,9 @@ import { ScreeningSummary } from "./screens/ScreeningSummary";
 import { ScreeningResults } from "./screens/ScreeningResults";
 import { Timeline } from "./screens/Timeline";
 import { ClinicianReview } from "./screens/ClinicianReview";
+import { DemoCases } from "./screens/DemoCases";
+import { SettingsScreen } from "./screens/SettingsScreen";
+import { DomainSelect } from "./screens/DomainSelect";
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +35,10 @@ export const router = createBrowserRouter([
     Component: ScreeningIntro,
   },
   {
+    path: "/screening/:sessionId/domain-select",
+    Component: DomainSelect,
+  },
+  {
     path: "/screening/:sessionId/questions",
     Component: ScreeningQuestions,
   },
@@ -50,5 +57,13 @@ export const router = createBrowserRouter([
   {
     path: "/clinician-review",
     Component: ClinicianReview,
+  },
+  {
+    path: "/demo-cases",
+    Component: DemoCases,
+  },
+  {
+    path: "/settings",
+    Component: SettingsScreen,
   },
 ]);

@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, XCircle, TrendingUp, Home, FileText } from "lucide-react";
-import { motion } from "motion/react";
+import {
+  ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, XCircle,
+  TrendingUp, Home, ChevronDown, ChevronUp, Stethoscope, Shield, Share2
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   RiskLevel,
   DOMAIN_LABELS,
   DOMAIN_ICONS,
-  DOMAIN_COLORS,
   RISK_LABELS,
   RISK_COLORS,
 } from "../data/types";
@@ -25,6 +28,7 @@ export function ScreeningResults() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const { results, getChild, sessions } = useApp();
+  const [showClinician, setShowClinician] = useState(false);
 
   const result = results.find((r) => r.sessionId === sessionId);
   const session = sessions.find((s) => s.id === sessionId);
@@ -74,6 +78,7 @@ export function ScreeningResults() {
           </motion.div>
 
           <div className="bg-[#F8F9FA] rounded-2xl p-5">
+            <h3 className="font-bold text-[#1A1A1A] mb-2">For You (Parent/Caregiver)</h3>
             <p className="text-[#1A1A1A] leading-relaxed">{result.parentSummary}</p>
           </div>
 
@@ -137,18 +142,58 @@ export function ScreeningResults() {
             </div>
           </div>
 
+          <button
+            onClick={() => setShowClinician(!showClinician)}
+            className="w-full flex items-center justify-between p-4 bg-[#F3E5F5] rounded-2xl"
+          >
+            <div className="flex items-center gap-2">
+              <Stethoscope className="w-5 h-5 text-[#9C27B0]" />
+              <span className="font-bold text-[#9C27B0]">For Your Clinician</span>
+            </div>
+            {showClinician ? (
+              <ChevronUp className="w-5 h-5 text-[#9C27B0]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-[#9C27B0]" />
+            )}
+          </button>
+
+          <AnimatePresence>
+            {showClinician && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-white border-2 border-[#CE93D8] rounded-2xl p-4 space-y-3">
+                  <p className="text-xs font-bold text-[#9C27B0] uppercase">
+                    AI-Generated Draft — Requires Clinician Review
+                  </p>
+                  <p className="text-sm text-[#666666] whitespace-pre-line leading-relaxed">
+                    {result.clinicianSummary}
+                  </p>
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <Shield className="w-4 h-4 text-[#34A853]" />
+                    <span className="text-xs text-[#34A853] font-semibold">
+                      Safety checks applied · Screening language only
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="bg-[#E8F0FE] rounded-2xl p-4">
             <p className="text-sm text-[#1A73E8]">
-              An AI assistant prepared this screening summary. Discuss these results with your 
-              child's doctor, nurse, or health worker. Do not make major decisions based on this 
-              app alone.
+              An AI assistant prepared this screening summary. Take this to your child's doctor,
+              nurse, or health worker. Do not make major decisions based on this app alone.
             </p>
           </div>
 
-          <div className="text-xs text-[#999999] text-center">
-            Model: {result.modelProvenance.modelId} v{result.modelProvenance.version}
-            <br />
-            Screened: {new Date(result.createdAt).toLocaleDateString()}
+          <div className="text-xs text-[#999999] text-center space-y-1">
+            <p>Model: {result.modelProvenance.modelId} v{result.modelProvenance.version}</p>
+            <p>Screened: {new Date(result.createdAt).toLocaleDateString()}</p>
+            <p>Session: {result.sessionId.slice(0, 8)}</p>
           </div>
         </div>
 

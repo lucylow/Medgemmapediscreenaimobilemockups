@@ -3,14 +3,22 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { ArrowLeft, Calendar, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, ChevronRight, TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
 import {
   DOMAIN_LABELS,
   DOMAIN_ICONS,
   RISK_LABELS,
   RISK_COLORS,
+  RiskLevel,
 } from "../data/types";
+
+const riskToNumber: Record<RiskLevel, number> = {
+  on_track: 4,
+  monitor: 3,
+  discuss: 2,
+  refer: 1,
+};
 
 export function Timeline() {
   const navigate = useNavigate();
@@ -18,7 +26,11 @@ export function Timeline() {
   const { getChild, getResultsForChild } = useApp();
 
   const child = childId ? getChild(childId) : undefined;
-  const results = childId ? getResultsForChild(childId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : [];
+  const results = childId
+    ? getResultsForChild(childId).sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+    : [];
 
   if (!child) {
     return (
@@ -33,6 +45,8 @@ export function Timeline() {
     );
   }
 
+  const displayResults = [...results].reverse();
+
   return (
     <MobileContainer>
       <div className="h-full flex flex-col">
@@ -45,7 +59,9 @@ export function Timeline() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-[#1A1A1A]">{child.displayName}'s Timeline</h1>
-            <p className="text-sm text-[#666666]">{results.length} screening{results.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-[#666666]">
+              {results.length} screening{results.length !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
 
@@ -62,56 +78,130 @@ export function Timeline() {
               </PrimaryButton>
             </div>
           ) : (
-            <div className="relative">
-              <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
-              <div className="space-y-6">
-                {results.map((result, idx) => (
-                  <motion.div
-                    key={result.sessionId}
-                    className="relative pl-14"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                  >
-                    <div
-                      className="absolute left-4 top-4 w-5 h-5 rounded-full border-4 border-white z-10"
-                      style={{ backgroundColor: RISK_COLORS[result.overallRisk] }}
-                    />
-                    <div
-                      className="bg-white border-2 border-gray-100 rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform"
-                      onClick={() => navigate(`/screening-results/${result.sessionId}`)}
+            <div className="space-y-6">
+              {results.length >= 2 && (
+                <div className="bg-white border-2 border-gray-100 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="w-5 h-5 text-[#1A73E8]" />
+                    <h2 className="font-bold text-[#1A1A1A]">Risk Trend</h2>
+                  </div>
+                  <div className="relative h-[120px]">
+                    <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-[#999999]">
+                      <span>On Track</span>
+                      <span>Monitor</span>
+                      <span>Discuss</span>
+                      <span>Refer</span>
+                    </div>
+                    <svg
+                      viewBox={`0 0 ${Math.max(results.length * 80, 200)} 100`}
+                      className="w-full h-full pl-14"
+                      preserveAspectRatio="none"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-[#666666]">
-                          {new Date(result.createdAt).toLocaleDateString()} · {result.ageMonths}mo
-                        </span>
-                        <div
-                          className="px-2 py-1 rounded-full text-xs font-bold text-white"
-                          style={{ backgroundColor: RISK_COLORS[result.overallRisk] }}
-                        >
-                          {RISK_LABELS[result.overallRisk]}
+                      {[25, 50, 75].map((y) => (
+                        <line
+                          key={y}
+                          x1="0"
+                          y1={y}
+                          x2="100%"
+                          y2={y}
+                          stroke="#F0F0F0"
+                          strokeWidth="1"
+                        />
+                      ))}
+                      <polyline
+                        points={results
+                          .map((r, i) => {
+                            const x = results.length === 1
+                              ? 50
+                              : (i / (results.length - 1)) * 100;
+                            const y = 100 - ((riskToNumber[r.overallRisk] - 1) / 3) * 80 - 10;
+                            return `${x},${y}`;
+                          })
+                          .join(" ")}
+                        fill="none"
+                        stroke="#1A73E8"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      {results.map((r, i) => {
+                        const x = results.length === 1
+                          ? 50
+                          : (i / (results.length - 1)) * 100;
+                        const y = 100 - ((riskToNumber[r.overallRisk] - 1) / 3) * 80 - 10;
+                        return (
+                          <circle
+                            key={r.sessionId}
+                            cx={x}
+                            cy={y}
+                            r="4"
+                            fill={RISK_COLORS[r.overallRisk]}
+                            stroke="white"
+                            strokeWidth="2"
+                          />
+                        );
+                      })}
+                    </svg>
+                  </div>
+                  <div className="flex justify-between mt-2 text-[10px] text-[#999999] pl-14">
+                    {results.map((r) => (
+                      <span key={r.sessionId}>{r.ageMonths}mo</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="relative">
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+                <div className="space-y-6">
+                  {displayResults.map((result, idx) => (
+                    <motion.div
+                      key={result.sessionId}
+                      className="relative pl-14"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                    >
+                      <div
+                        className="absolute left-4 top-4 w-5 h-5 rounded-full border-4 border-white z-10"
+                        style={{ backgroundColor: RISK_COLORS[result.overallRisk] }}
+                      />
+                      <div
+                        className="bg-white border-2 border-gray-100 rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                        onClick={() => navigate(`/screening-results/${result.sessionId}`)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-[#666666]">
+                            {new Date(result.createdAt).toLocaleDateString()} · {result.ageMonths}mo
+                          </span>
+                          <div
+                            className="px-2 py-1 rounded-full text-xs font-bold text-white"
+                            style={{ backgroundColor: RISK_COLORS[result.overallRisk] }}
+                          >
+                            {RISK_LABELS[result.overallRisk]}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {result.domainRisks.map((dr) => (
+                            <span
+                              key={dr.domain}
+                              className="text-xs px-2 py-1 rounded-lg"
+                              style={{
+                                backgroundColor: RISK_COLORS[dr.risk] + "20",
+                                color: RISK_COLORS[dr.risk],
+                              }}
+                            >
+                              {DOMAIN_ICONS[dr.domain]} {DOMAIN_LABELS[dr.domain]}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-end mt-2 text-sm text-[#1A73E8]">
+                          View details <ChevronRight className="w-4 h-4 ml-1" />
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {result.domainRisks.map((dr) => (
-                          <span
-                            key={dr.domain}
-                            className="text-xs px-2 py-1 rounded-lg"
-                            style={{
-                              backgroundColor: RISK_COLORS[dr.risk] + "20",
-                              color: RISK_COLORS[dr.risk],
-                            }}
-                          >
-                            {DOMAIN_ICONS[dr.domain]} {DOMAIN_LABELS[dr.domain]}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-end mt-2 text-sm text-[#1A73E8]">
-                        View details <ChevronRight className="w-4 h-4 ml-1" />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

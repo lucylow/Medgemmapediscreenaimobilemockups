@@ -4,7 +4,7 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { ArrowLeft, Check, AlertCircle, Minus, Send } from "lucide-react";
+import { ArrowLeft, Check, AlertCircle, Minus, Send, Edit3 } from "lucide-react";
 import {
   DOMAIN_LABELS,
   DOMAIN_ICONS,
@@ -14,9 +14,10 @@ import {
 export function ScreeningSummary() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
-  const { currentSession, setParentConcerns, submitSession } = useApp();
+  const { currentSession, setParentConcerns, submitSession, getChild } = useApp();
   const [concerns, setConcerns] = useState(currentSession?.parentConcernsText || "");
   const [submitting, setSubmitting] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
 
   if (!currentSession) {
     return (
@@ -31,6 +32,7 @@ export function ScreeningSummary() {
     );
   }
 
+  const child = getChild(currentSession.childId);
   const totalQuestions = currentSession.domains.reduce((s, d) => s + d.questions.length, 0);
   const answered = currentSession.domains.reduce(
     (s, d) => s + d.questions.filter((q) => q.answer !== null).length,
@@ -58,7 +60,14 @@ export function ScreeningSummary() {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold text-[#1A1A1A]">Review & Submit</h1>
+          <div>
+            <h1 className="text-xl font-bold text-[#1A1A1A]">Review & Submit</h1>
+            {child && (
+              <p className="text-sm text-[#666666]">
+                {child.displayName} · {currentSession.ageMonths}mo
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
@@ -82,11 +91,19 @@ export function ScreeningSummary() {
           </div>
 
           <div>
-            <h2 className="text-lg font-bold text-[#1A1A1A] mb-4">Answers by Area</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-[#1A1A1A]">Answers by Area</h2>
+              <button
+                onClick={() => navigate(`/screening/${sessionId}/questions`)}
+                className="flex items-center gap-1 text-sm text-[#1A73E8] font-semibold"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            </div>
             <div className="space-y-4">
               {currentSession.domains.map((da) => {
                 const domainAnswered = da.questions.filter((q) => q.answer !== null).length;
-                const domainColor = DOMAIN_COLORS[da.domain];
                 return (
                   <div key={da.domain} className="bg-white border-2 border-gray-100 rounded-2xl p-4">
                     <div className="flex items-center gap-3 mb-3">
@@ -134,16 +151,37 @@ export function ScreeningSummary() {
             />
           </div>
 
-          <div className="bg-[#FFF3E0] rounded-2xl p-4">
+          <div className="bg-[#FFF3E0] rounded-2xl p-4 space-y-3">
             <p className="text-sm text-[#E65100]">
               By submitting, an AI assistant will prepare a screening summary. This is not a diagnosis.
               A clinician should review results before any clinical decisions are made.
             </p>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <div className="mt-0.5">
+                <button
+                  onClick={() => setConsentChecked(!consentChecked)}
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    consentChecked
+                      ? "bg-[#1A73E8] border-[#1A73E8]"
+                      : "border-gray-400 bg-white"
+                  }`}
+                >
+                  {consentChecked && <Check className="w-3.5 h-3.5 text-white" />}
+                </button>
+              </div>
+              <span className="text-sm text-[#1A1A1A]">
+                I understand this is a screening tool and not a diagnosis. Results should be discussed with a health professional.
+              </span>
+            </label>
           </div>
         </div>
 
         <div className="px-6 py-4">
-          <PrimaryButton onClick={handleSubmit} disabled={submitting} variant="success">
+          <PrimaryButton
+            onClick={handleSubmit}
+            disabled={submitting || !consentChecked}
+            variant="success"
+          >
             {submitting ? (
               "Analyzing..."
             ) : (
@@ -153,6 +191,11 @@ export function ScreeningSummary() {
               </>
             )}
           </PrimaryButton>
+          {!consentChecked && !submitting && (
+            <p className="text-xs text-center text-[#999999] mt-2">
+              Please check the consent box above to submit
+            </p>
+          )}
         </div>
         <DisclaimerFooter />
       </div>
