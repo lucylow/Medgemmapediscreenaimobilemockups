@@ -88,6 +88,7 @@ src/
       questions.ts      - ASQ-3 inspired question banks
       screeningEngine.ts - Scoring & result generation
       milestones.ts     - Milestone bank for symptom checker (80 items, 5 age bands, 4 domains)
+      growthStandards.ts - WHO growth standards Z-score calculator + measurement storage
       demoData.ts       - Demo data loader
   styles/               - CSS files
 public/
@@ -114,7 +115,21 @@ Tab Navigation (persistent on main screens):
 - Build: `npx vite build`
 - Output goes to `dist/`
 
+## Key Screens
+- GrowthTracker (`/growth-tracker`) - WHO growth standard tracking with Z-score calculator
+
 ## Recent Changes
+- 2026-02-21: Growth Tracker - WHO Growth Standards
+  - New Growth Tracker screen at /growth-tracker with real child data integration
+  - WHO growth standards data for weight, height, head circumference (0-60 months, boys & girls)
+  - LMS method Z-score calculator with percentile conversion
+  - Interactive growth charts showing patient data vs WHO reference curves (±2 SD bands)
+  - Measurement input form with weight (kg), height (cm), head circumference (cm)
+  - localStorage persistence for growth measurements per child
+  - Z-score classification: normal, monitor, concern, severe with color coding
+  - Measurement history with delete capability
+  - Green gradient quick access card on Dashboard
+  - Child selector for multi-child families
 - 2026-02-21: Rash Analysis - AI Dermatological Skin Screening
   - New Rash Analysis screen at /rash-analysis with full camera pipeline
   - Intro screen with condition detection list, photo tips, and safety disclaimer
