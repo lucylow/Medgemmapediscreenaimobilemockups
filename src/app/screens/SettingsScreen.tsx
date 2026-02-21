@@ -4,13 +4,19 @@ import { MobileContainer } from "../components/MobileContainer";
 import { TabBar } from "../components/TabBar";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Trash2, ToggleLeft, ToggleRight, Info, Server, Shield } from "lucide-react";
+import { Trash2, ToggleLeft, ToggleRight, Info, Server, Shield, Lock, Bell, Fingerprint, Smartphone } from "lucide-react";
+import { isPinEnabled, setPinEnabled, PinLock as PinLockScreen } from "./PinLock";
+import { requestNotificationPermission, isNotificationSupported, getNotificationPermission } from "../platform/notifications";
+import { hapticImpact, hapticNotification } from "../platform/haptics";
 
 export function SettingsScreen() {
   const navigate = useNavigate();
   const { clearData, children, results } = useApp();
   const [useMockApi, setUseMockApi] = useState(true);
   const [backendUrl, setBackendUrl] = useState("https://api.pediscreen.example.com");
+  const [pinEnabled, setPinEnabledState] = useState(isPinEnabled());
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [notifPermission, setNotifPermission] = useState(getNotificationPermission());
 
   return (
     <MobileContainer>
@@ -60,6 +66,69 @@ export function SettingsScreen() {
               </div>
             )}
           </div>
+
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Security</h2>
+            <div className="bg-white border-2 border-gray-100 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Lock className="w-5 h-5 text-[#9C27B0]" />
+                  <div>
+                    <p className="font-semibold text-[#1A1A1A]">PIN Lock</p>
+                    <p className="text-xs text-[#666666]">
+                      {pinEnabled ? "App locked with 4-digit PIN" : "Protect health data with a PIN"}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => {
+                  hapticImpact("medium");
+                  if (pinEnabled) {
+                    setPinEnabled(false);
+                    setPinEnabledState(false);
+                  } else {
+                    setShowPinSetup(true);
+                  }
+                }}>
+                  {pinEnabled ? (
+                    <ToggleRight className="w-10 h-10 text-[#9C27B0]" />
+                  ) : (
+                    <ToggleLeft className="w-10 h-10 text-[#999999]" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {isNotificationSupported() && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Notifications</h2>
+              <div className="bg-white border-2 border-gray-100 rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-5 h-5 text-[#FF9800]" />
+                    <div>
+                      <p className="font-semibold text-[#1A1A1A]">Screening Alerts</p>
+                      <p className="text-xs text-[#666666]">
+                        {notifPermission === "granted" ? "Enabled" : notifPermission === "denied" ? "Blocked in browser" : "Get alerts for results"}
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={async () => {
+                    hapticImpact("light");
+                    const granted = await requestNotificationPermission();
+                    setNotifPermission(granted ? "granted" : "denied");
+                    if (granted) hapticNotification("success");
+                  }} disabled={notifPermission === "denied"}>
+                    {notifPermission === "granted" ? (
+                      <ToggleRight className="w-10 h-10 text-[#FF9800]" />
+                    ) : (
+                      <ToggleLeft className="w-10 h-10 text-[#999999]" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Data</h2>
@@ -112,8 +181,23 @@ export function SettingsScreen() {
                 <div className="space-y-1">
                   <p className="font-semibold text-[#1A1A1A]">PediScreen AI</p>
                   <p className="text-xs text-[#666666]">MedGemma Impact Challenge</p>
-                  <p className="text-xs text-[#666666]">Version 1.0.0-demo</p>
+                  <p className="text-xs text-[#666666]">Version 1.1.0 — Platform APIs</p>
                   <p className="text-xs text-[#666666]">Model: medgemma-pediscreen v1.0.0-demo</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {[
+                      { label: "Haptics", icon: "🎚️" },
+                      { label: "Camera", icon: "📷" },
+                      { label: "PIN Lock", icon: "🔒" },
+                      { label: "Offline", icon: "📴" },
+                      { label: "PWA", icon: "📱" },
+                      { label: "Swipe", icon: "👆" },
+                      { label: "Alerts", icon: "🔔" },
+                    ].map((feat) => (
+                      <span key={feat.label} className="inline-flex items-center gap-0.5 bg-[#F8F9FA] border border-gray-200 rounded-full px-2 py-0.5 text-[10px] text-[#666666]">
+                        {feat.icon} {feat.label}
+                      </span>
+                    ))}
+                  </div>
                   <p className="text-xs text-[#999999] mt-2">
                     Pediatric developmental screening tool. This application supports screening only and does not make diagnoses.
                   </p>
@@ -126,6 +210,20 @@ export function SettingsScreen() {
         <DisclaimerFooter />
         <TabBar />
       </div>
+
+      {showPinSetup && (
+        <div className="fixed inset-0 z-50">
+          <PinLockScreen
+            onUnlock={() => {}}
+            mode="setup"
+            onSetupComplete={() => {
+              setPinEnabledState(true);
+              setShowPinSetup(false);
+              hapticNotification("success");
+            }}
+          />
+        </div>
+      )}
     </MobileContainer>
   );
 }
