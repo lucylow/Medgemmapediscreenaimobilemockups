@@ -4,14 +4,16 @@ import { MobileContainer } from "../components/MobileContainer";
 import { TabBar } from "../components/TabBar";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Trash2, ToggleLeft, ToggleRight, Info, Server, Shield, Lock, Bell, Fingerprint, Smartphone } from "lucide-react";
+import { Trash2, ToggleLeft, ToggleRight, Info, Server, Shield, Lock, Bell, Fingerprint, Smartphone, CloudOff, Wifi, Database, HardDrive, RefreshCw } from "lucide-react";
 import { isPinEnabled, setPinEnabled, PinLock as PinLockScreen } from "./PinLock";
 import { requestNotificationPermission, isNotificationSupported, getNotificationPermission } from "../platform/notifications";
 import { hapticImpact, hapticNotification } from "../platform/haptics";
+import { useOffline } from "../offline/OfflineContext";
 
 export function SettingsScreen() {
   const navigate = useNavigate();
   const { clearData, children, results } = useApp();
+  const { isOnline, syncState, storageUsage, swReady, cachedAssets } = useOffline();
   const [useMockApi, setUseMockApi] = useState(true);
   const [backendUrl, setBackendUrl] = useState("https://api.pediscreen.example.com");
   const [pinEnabled, setPinEnabledState] = useState(isPinEnabled());
@@ -65,6 +67,68 @@ export function SettingsScreen() {
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Offline & Sync</h2>
+            <div className="bg-white border-2 border-gray-100 rounded-2xl p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {isOnline ? <Wifi className="w-5 h-5 text-[#34A853]" /> : <CloudOff className="w-5 h-5 text-[#FF9800]" />}
+                  <div>
+                    <p className="font-semibold text-[#1A1A1A]">{isOnline ? "Online" : "Offline Mode"}</p>
+                    <p className="text-xs text-[#666666]">
+                      {isOnline ? "Connected · Sync active" : "Full functionality available offline"}
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-3 h-3 rounded-full ${isOnline ? "bg-[#34A853]" : "bg-[#FF9800]"} animate-pulse`} />
+              </div>
+
+              <div className="border-t border-gray-100 pt-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-[#666666]">
+                    <HardDrive className="w-4 h-4" />
+                    <span>Storage Used</span>
+                  </div>
+                  <span className="font-semibold text-[#1A1A1A]">{storageUsage.usageMB} MB</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-gradient-to-r from-[#1A73E8] to-[#34A853] rounded-full h-2 transition-all" style={{ width: `${Math.min(storageUsage.percent, 100)}%` }} />
+                </div>
+                <p className="text-xs text-[#999999]">{storageUsage.percent}% of {storageUsage.quotaMB} MB quota</p>
+              </div>
+
+              <div className="border-t border-gray-100 pt-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#666666]">Service Worker</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${swReady ? "bg-[#E8F5E9] text-[#2E7D32]" : "bg-[#FFF3E0] text-[#E65100]"}`}>
+                    {swReady ? "Active" : "Loading"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#666666]">Cached Assets</span>
+                  <span className="font-semibold text-[#1A1A1A]">{cachedAssets} files</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#666666]">Pending Sync</span>
+                  <span className="font-semibold text-[#1A1A1A]">{syncState.pendingCount} items</span>
+                </div>
+                {syncState.failedCount > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[#EA4335]">Failed Sync</span>
+                    <span className="font-semibold text-[#EA4335]">{syncState.failedCount} items</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-[#F0F7FF] rounded-xl p-3 flex items-start gap-2">
+                <Database className="w-4 h-4 text-[#1A73E8] mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-[#1A73E8]">
+                  All screenings work offline. Data syncs automatically when connected. 72hr+ offline capacity.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -181,14 +245,16 @@ export function SettingsScreen() {
                 <div className="space-y-1">
                   <p className="font-semibold text-[#1A1A1A]">PediScreen AI</p>
                   <p className="text-xs text-[#666666]">MedGemma Impact Challenge</p>
-                  <p className="text-xs text-[#666666]">Version 1.1.0 — Platform APIs</p>
+                  <p className="text-xs text-[#666666]">Version 1.2.0 — Offline-First</p>
                   <p className="text-xs text-[#666666]">Model: medgemma-pediscreen v1.0.0-demo</p>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {[
                       { label: "Haptics", icon: "🎚️" },
                       { label: "Camera", icon: "📷" },
                       { label: "PIN Lock", icon: "🔒" },
-                      { label: "Offline", icon: "📴" },
+                      { label: "Offline-First", icon: "📴" },
+                      { label: "Sync Queue", icon: "🔄" },
+                      { label: "IndexedDB", icon: "💾" },
                       { label: "PWA", icon: "📱" },
                       { label: "Swipe", icon: "👆" },
                       { label: "Alerts", icon: "🔔" },
