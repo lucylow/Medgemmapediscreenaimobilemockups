@@ -15,7 +15,8 @@ A React-based pediatric developmental screening application for the MedGemma Imp
 - **Clinician review demo**: Shows AI draft vs clinician-approved text (HITL pipeline)
 - **Demo cases**: 4 preconfigured risk scenarios for instant demonstration
 - **Settings**: Mock API toggle, clear data, privacy info, PIN lock, notifications, app version
-- **Bottom tab navigation**: Home, Children, Demo, Settings tabs with haptic feedback
+- **Symptom Checker**: Standalone rapid milestone assessment with age selector, domain grid, checklist, MedGemma analysis with ASQ-3 scores, confidence %, ICD-10 codes, domain breakdown bars, and expandable findings/recommendations
+- **Bottom tab navigation**: Home, Children, Check, Demo, Settings tabs with haptic feedback
 - **Safety**: Disclaimer footers, non-diagnostic language throughout, safety flags on results
 
 ## Platform APIs (Mobile Features)
@@ -76,6 +77,7 @@ src/
       Dashboard          - Overview dashboard
       ClinicianReview    - Clinician demo view
       DemoCases          - Preset risk scenario demos
+      SymptomChecker     - Standalone rapid milestone assessment tool
       SettingsScreen     - Settings with PIN lock, notifications, API mode
       PinLock            - 4-digit PIN lock screen
     data/
@@ -83,6 +85,7 @@ src/
       storage.ts        - localStorage CRUD
       questions.ts      - ASQ-3 inspired question banks
       screeningEngine.ts - Scoring & result generation
+      milestones.ts     - Milestone bank for symptom checker (80 items, 5 age bands, 4 domains)
       demoData.ts       - Demo data loader
   styles/               - CSS files
 public/
@@ -101,7 +104,7 @@ Welcome (role select) →
   Clinician → Clinician Review (demo)
 
 Tab Navigation (persistent on main screens):
-  Home (Dashboard) | Children | Demo Cases | Settings
+  Home (Dashboard) | Children | Check (Symptom Checker) | Demo Cases | Settings
 ```
 
 ## Development
@@ -110,6 +113,18 @@ Tab Navigation (persistent on main screens):
 - Output goes to `dist/`
 
 ## Recent Changes
+- 2026-02-21: Symptom Checker - Rapid Milestone Assessment Tool
+  - New standalone Symptom Checker screen at /symptom-checker
+  - Age selector (6, 12, 18, 24, 30, 36, 48 months) with pill buttons
+  - Domain grid (All, Communication, Motor, Social, Cognitive) with color coding
+  - 80 age-appropriate milestone questions across 5 age bands and 4 domains
+  - MedGemma analysis animation with progress bar
+  - Results card: risk level badge, confidence %, ASQ-3 score, percentile, domain breakdown bars, ICD-10 codes
+  - Expandable Key Findings & Recommendations section
+  - Photo evidence capture via camera integration
+  - Added "Check" tab to bottom navigation bar
+  - Quick access card on Dashboard ("Quick Symptom Checker")
+  - New data file: milestones.ts with comprehensive milestone bank
 - 2026-02-21: Platform APIs - Mobile Feature Enhancement
   - Added haptic feedback (Web Vibration API) across all interactions
   - Added camera integration for child profile photos (getUserMedia)
