@@ -4,6 +4,7 @@ import { encodeFeaturesForModel, featuresToFloat32Array } from "./featureEncodin
 import { LocalModelRuntime, MedGemmaRuntimeCapabilities } from "./LocalModelRuntime";
 import type { VocalAnalysisInput, VocalAnalysisResult, PoseEstimationInput, PoseEstimationResult, FusionInput, FusionResult, XrayAnalysisInput, XrayAnalysisResult } from "./medgemmaSchemas";
 import type { CTAnalysisInput, CTAnalysisResult } from "../ct/ctSchemas";
+import type { MRIAnalysisInput, MRIAnalysisResult } from "../mri/mriSchemas";
 
 export class EdgeAiEngine {
   private runtime: LocalModelRuntime;
@@ -17,6 +18,7 @@ export class EdgeAiEngine {
   private _fusionCount = 0;
   private _xrayCount = 0;
   private _ctCount = 0;
+  private _mriCount = 0;
 
   constructor(runtime: LocalModelRuntime) {
     this.runtime = runtime;
@@ -69,8 +71,12 @@ export class EdgeAiEngine {
     return this._ctCount;
   }
 
+  get mriCount(): number {
+    return this._mriCount;
+  }
+
   get totalInferenceCount(): number {
-    return this._inferenceCount + this._vocalCount + this._poseCount + this._fusionCount + this._xrayCount + this._ctCount;
+    return this._inferenceCount + this._vocalCount + this._poseCount + this._fusionCount + this._xrayCount + this._ctCount + this._mriCount;
   }
 
   getCapabilities(): MedGemmaRuntimeCapabilities {
@@ -156,6 +162,15 @@ export class EdgeAiEngine {
 
     const result = await this.runtime.runCTAnalysis(input);
     this._ctCount++;
+    return result;
+  }
+
+  async runMRIAnalysis(input: MRIAnalysisInput): Promise<MRIAnalysisResult | null> {
+    if (!this._ready) await this.warmup();
+    if (!this.runtime.runMRIAnalysis) return null;
+
+    const result = await this.runtime.runMRIAnalysis(input);
+    this._mriCount++;
     return result;
   }
 }

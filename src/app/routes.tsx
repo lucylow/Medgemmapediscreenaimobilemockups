@@ -27,6 +27,10 @@ import { CTScanHomeScreen } from "./screens/CTScanHomeScreen";
 import { CTImportScreen } from "./screens/CTImportScreen";
 import { CT3DViewerScreen } from "./screens/CT3DViewerScreen";
 import { CTSerialCompareScreen } from "./screens/CTSerialCompareScreen";
+import { MRIScanHomeScreen } from "./screens/MRIScanHomeScreen";
+import { MRIImportScreen } from "./screens/MRIImportScreen";
+import { MRIMultiplanarScreen } from "./screens/MRIMultiplanarScreen";
+import { MRISerialTrackingScreen } from "./screens/MRISerialTrackingScreen";
 
 export const router = createBrowserRouter([
   {
@@ -140,5 +144,21 @@ export const router = createBrowserRouter([
   {
     path: "/ct-serial",
     Component: CTSerialCompareScreen,
+  },
+  {
+    path: "/mri-scan",
+    Component: MRIScanHomeScreen,
+  },
+  {
+    path: "/mri-import",
+    Component: MRIImportScreen,
+  },
+  {
+    path: "/mri-viewer",
+    Component: MRIMultiplanarScreen,
+  },
+  {
+    path: "/mri-serial",
+    Component: MRISerialTrackingScreen,
   },
 ]);

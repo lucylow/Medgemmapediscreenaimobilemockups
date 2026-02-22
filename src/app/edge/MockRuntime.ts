@@ -29,6 +29,12 @@ import {
   generateCTUseCaseFlags,
   generateCTClinicalSummary,
 } from "../ct/ctSchemas";
+import type { MRIAnalysisInput, MRIAnalysisResult } from "../mri/mriSchemas";
+import {
+  inferMRIRiskAmplification,
+  generateMRIKeyFindings,
+  generateMRIClinicalSummary,
+} from "../mri/mriSchemas";
 
 function scoreToRisk(score: number): RiskLevel {
   if (score >= 0.75) return "on_track";
@@ -51,7 +57,7 @@ export class MockRuntime implements LocalModelRuntime {
   }
 
   getCapabilities(): MedGemmaRuntimeCapabilities {
-    return { screening: true, vocal: true, pose: true, fusion: true, xray: true, ct: true };
+    return { screening: true, vocal: true, pose: true, fusion: true, xray: true, ct: true, mri: true };
   }
 
   async runRiskModel(features: Float32Array): Promise<LocalInferenceResult> {
@@ -372,6 +378,47 @@ export class MockRuntime implements LocalModelRuntime {
       latencyMs: Math.round(performance.now() - start),
       modelVersion: "MedGemma-2B-IT-Q4",
       useCaseFlags,
+    };
+  }
+
+  async runMRIAnalysis(input: MRIAnalysisInput): Promise<MRIAnalysisResult> {
+    const start = performance.now();
+    await new Promise((res) => setTimeout(res, 1500 + Math.random() * 500));
+
+    const ageMonths = input.childAgeMonths;
+    const modality = input.volumeMeta.modality;
+
+    const ageFactor = Math.max(0, 1 - ageMonths / 60);
+    const brainAgeGapMonths = (Math.random() - 0.3) * 8 * ageFactor;
+
+    const domainScores = {
+      brainAgeGapMonths: parseFloat(brainAgeGapMonths.toFixed(1)),
+      corticalThickness: 1.5 + Math.random() * 1.5,
+      whiteMatterIntegrity: 0.6 + Math.random() * 0.35,
+      ventricularRatio: 0.08 + Math.random() * 0.2,
+      myelinationScore: 0.6 + Math.random() * 0.35,
+    };
+
+    const riskAmplification = inferMRIRiskAmplification(domainScores);
+    const keyFindings = generateMRIKeyFindings(modality, domainScores, riskAmplification, ageMonths);
+    const clinicalSummary = generateMRIClinicalSummary(
+      modality,
+      domainScores,
+      riskAmplification,
+      ageMonths,
+      input.sequences
+    );
+
+    return {
+      volumeId: input.volumeMeta.id,
+      domainScores,
+      riskAmplification,
+      brainAgeEquivalent: parseFloat((ageMonths + domainScores.brainAgeGapMonths).toFixed(1)),
+      keyFindings,
+      clinicalSummary,
+      latencyMs: Math.round(performance.now() - start),
+      modelVersion: "NeuroNet-v1.2 | MedGemma-MRI-Q4",
+      sequences: input.sequences,
     };
   }
 
