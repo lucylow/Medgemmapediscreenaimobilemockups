@@ -12,7 +12,10 @@ import { ClinicianReview } from "./screens/ClinicianReview";
 import { DemoCases } from "./screens/DemoCases";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { DomainSelect } from "./screens/DomainSelect";
-import { SymptomChecker } from "./screens/SymptomChecker";
+import { SymptomCheckerWelcome } from "./screens/SymptomCheckerWelcome";
+import { SymptomSelection } from "./screens/SymptomSelection";
+import { SymptomDetails } from "./screens/SymptomDetails";
+import { SymptomResults } from "./screens/SymptomResults";
 import { RashAnalysis } from "./screens/RashAnalysis";
 import { GrowthTracker } from "./screens/GrowthTracker";
 import { QRPatientCard } from "./screens/QRPatientCard";
@@ -74,7 +77,19 @@ export const router = createBrowserRouter([
   },
   {
     path: "/symptom-checker",
-    Component: SymptomChecker,
+    Component: SymptomCheckerWelcome,
+  },
+  {
+    path: "/symptom-selection",
+    Component: SymptomSelection,
+  },
+  {
+    path: "/symptom-details",
+    Component: SymptomDetails,
+  },
+  {
+    path: "/symptom-results",
+    Component: SymptomResults,
   },
   {
     path: "/rash-analysis",
