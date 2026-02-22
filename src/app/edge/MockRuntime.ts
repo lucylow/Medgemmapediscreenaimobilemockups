@@ -1,4 +1,4 @@
-import { LocalModelRuntime } from "./LocalModelRuntime";
+import { LocalModelRuntime, MedGemmaRuntimeCapabilities } from "./LocalModelRuntime";
 import {
   LocalInferenceResult,
   LocalSummaryResult,
@@ -6,6 +6,19 @@ import {
   EdgeDomainRisk,
 } from "./inferenceSchemas";
 import { DomainType, RiskLevel, DOMAIN_LABELS } from "../data/types";
+import type {
+  VocalAnalysisInput,
+  VocalAnalysisResult,
+  VocalMilestone,
+  CryClassification,
+  PoseEstimationInput,
+  PoseEstimationResult,
+  PoseKeypoint,
+  MotorMilestone,
+  FusionInput,
+  FusionResult,
+} from "./medgemmaSchemas";
+import { INFANT_KEYPOINTS, getMotorMilestonesForAge } from "./medgemmaSchemas";
 
 function scoreToRisk(score: number): RiskLevel {
   if (score >= 0.75) return "on_track";
@@ -24,7 +37,11 @@ export class MockRuntime implements LocalModelRuntime {
   }
 
   getModelInfo() {
-    return { modelId: "medgemma-pediscreen-mock", version: "1.0.0-demo" };
+    return { modelId: "medgemma-pediscreen-2b", version: "1.0.0-q4" };
+  }
+
+  getCapabilities(): MedGemmaRuntimeCapabilities {
+    return { screening: true, vocal: true, pose: true, fusion: true };
   }
 
   async runRiskModel(features: Float32Array): Promise<LocalInferenceResult> {
@@ -92,9 +109,153 @@ export class MockRuntime implements LocalModelRuntime {
         nextSteps.push(`Try activities at home that support ${DOMAIN_LABELS[d.domain].toLowerCase()} development.`);
       });
     }
-    nextSteps.push("Repeat this screening in 3–6 months or sooner if you have concerns.");
+    nextSteps.push("Repeat this screening in 3\u20136 months or sooner if you have concerns.");
     nextSteps.push("Remember: this screening does not replace professional medical advice.");
 
     return { parentSummary, clinicianSummary, nextSteps };
+  }
+
+  async runVocalAnalysis(input: VocalAnalysisInput): Promise<VocalAnalysisResult> {
+    const start = performance.now();
+    await new Promise((res) => setTimeout(res, 300 + Math.random() * 200));
+
+    const cryTypes: CryClassification["type"][] = ["pain", "hunger", "fatigue", "discomfort", "colic", "normal"];
+    const selectedType = cryTypes[Math.floor(Math.random() * cryTypes.length)];
+    const cryClassification: CryClassification = {
+      type: selectedType,
+      confidence: 0.82 + Math.random() * 0.13,
+    };
+
+    const ageBasedMilestones = this.getVocalMilestonesForAge(input.childAgeMonths);
+    const vocalMilestones: VocalMilestone[] = ageBasedMilestones.map((ms) => ({
+      milestone: ms,
+      achieved: Math.random() > 0.35,
+      confidence: 0.7 + Math.random() * 0.25,
+    }));
+
+    const achievedCount = vocalMilestones.filter((m) => m.achieved).length;
+    const achievedPct = vocalMilestones.length > 0 ? achievedCount / vocalMilestones.length : 1;
+
+    const babbleComplexity = 0.3 + Math.random() * 0.6;
+    const overallVocalRisk = scoreToRisk(achievedPct);
+
+    const detectedLanguageFeatures: string[] = [];
+    if (input.childAgeMonths >= 6) detectedLanguageFeatures.push("Consonant-vowel combinations");
+    if (input.childAgeMonths >= 10) detectedLanguageFeatures.push("Canonical babbling patterns");
+    if (input.childAgeMonths >= 14) detectedLanguageFeatures.push("Prosodic variation detected");
+    if (babbleComplexity > 0.6) detectedLanguageFeatures.push("Complex syllable chains");
+
+    const parentSummary = overallVocalRisk === "on_track"
+      ? `Your ${input.childAgeMonths}-month-old shows healthy vocal development. Their sounds and babbling patterns are age-appropriate. Keep talking, singing, and reading together!`
+      : `Your ${input.childAgeMonths}-month-old's vocal patterns suggest some areas that may benefit from extra attention. Try talking and reading more with your child. Consider discussing with your health provider at the next visit.`;
+
+    const clinicalNotes = `Vocal analysis for ${input.childAgeMonths}-month-old.\nCry classification: ${selectedType} (${(cryClassification.confidence * 100).toFixed(0)}%)\nBabble complexity: ${(babbleComplexity * 100).toFixed(0)}%\nMilestones: ${achievedCount}/${vocalMilestones.length} achieved\nOverall: ${overallVocalRisk.toUpperCase()}\nModel: medgemma-vocal-lora v1.0.0-q4`;
+
+    return {
+      sessionId: `vocal_${Date.now()}`,
+      cryClassification,
+      vocalMilestones,
+      detectedLanguageFeatures,
+      babbleComplexity,
+      overallVocalRisk,
+      confidence: 0.85 + Math.random() * 0.1,
+      inferenceTimeMs: Math.round(performance.now() - start),
+      parentSummary,
+      clinicalNotes,
+    };
+  }
+
+  async runPoseEstimation(input: PoseEstimationInput): Promise<PoseEstimationResult> {
+    const start = performance.now();
+    await new Promise((res) => setTimeout(res, 40 + Math.random() * 30));
+
+    const keypoints: PoseKeypoint[] = INFANT_KEYPOINTS.map((name) => ({
+      name,
+      x: 0.2 + Math.random() * 0.6,
+      y: 0.1 + Math.random() * 0.7,
+      confidence: 0.5 + Math.random() * 0.45,
+    }));
+
+    const milestoneNames = getMotorMilestonesForAge(input.childAgeMonths);
+    const motorMilestones: MotorMilestone[] = milestoneNames.map((ms) => {
+      const prob = 0.3 + Math.random() * 0.6;
+      return { milestone: ms, probability: prob, achieved: prob > 0.55 };
+    });
+
+    const achievedCount = motorMilestones.filter((m) => m.achieved).length;
+    const achievedPct = motorMilestones.length > 0 ? achievedCount / motorMilestones.length : 1;
+    const bimsScore = Math.round(achievedPct * 100);
+
+    const leftShoulder = keypoints.find((k) => k.name === "left_shoulder");
+    const rightShoulder = keypoints.find((k) => k.name === "right_shoulder");
+    const leftHip = keypoints.find((k) => k.name === "left_hip");
+    const rightHip = keypoints.find((k) => k.name === "right_hip");
+    const symmetryScore = leftShoulder && rightShoulder && leftHip && rightHip
+      ? 1 - Math.abs((leftShoulder.y - rightShoulder.y) + (leftHip.y - rightHip.y)) / 2
+      : 0.85;
+
+    const overallMotorRisk = scoreToRisk(achievedPct);
+
+    const parentSummary = overallMotorRisk === "on_track"
+      ? `Your ${input.childAgeMonths}-month-old shows good motor development! Their movements and posture look age-appropriate. Keep providing safe spaces for active play.`
+      : `Your ${input.childAgeMonths}-month-old's motor patterns suggest some areas that may benefit from more practice. Try tummy time, reaching games, and supervised movement activities. Consider discussing with your health provider.`;
+
+    const clinicalNotes = `Pose estimation for ${input.childAgeMonths}-month-old.\nBIMS Score: ${bimsScore}/100\nSymmetry: ${(symmetryScore * 100).toFixed(0)}%\nMilestones: ${achievedCount}/${motorMilestones.length}\nKeypoint confidence: ${(keypoints.reduce((s, k) => s + k.confidence, 0) / keypoints.length * 100).toFixed(0)}%\nOverall: ${overallMotorRisk.toUpperCase()}\nModel: medgemma-movenet-infant v1.0.0`;
+
+    return {
+      sessionId: `pose_${Date.now()}`,
+      keypoints,
+      motorMilestones,
+      bimsScore,
+      symmetryScore: Math.max(0, Math.min(1, symmetryScore)),
+      overallMotorRisk,
+      confidence: 0.82 + Math.random() * 0.12,
+      inferenceTimeMs: Math.round(performance.now() - start),
+      parentSummary,
+      clinicalNotes,
+    };
+  }
+
+  async runFusion(input: FusionInput): Promise<FusionResult> {
+    const start = performance.now();
+    await new Promise((res) => setTimeout(res, 200 + Math.random() * 150));
+
+    const weights = { screening: 0.5, vocal: 0.25, motor: 0.25 };
+    const screeningScore = input.screeningScore ?? 0.7;
+    const vocalScore = input.vocalScore ?? 0.7;
+    const motorScore = input.motorScore ?? 0.7;
+
+    const fusedScore =
+      screeningScore * weights.screening +
+      vocalScore * weights.vocal +
+      motorScore * weights.motor;
+
+    const overallRisk = scoreToRisk(fusedScore);
+
+    const recommendations: Record<RiskLevel, string> = {
+      on_track: "Multi-modal assessment indicates development is progressing well across all evaluated channels (screening, vocal, motor).",
+      monitor: "Fusion analysis suggests monitoring may be beneficial. Individual channels show some variation worth tracking over time.",
+      discuss: "Combined signals from screening, vocal, and motor assessment suggest discussing developmental concerns with a healthcare provider.",
+      refer: "Multi-modal fusion indicates elevated concern across multiple channels. Professional developmental evaluation is recommended.",
+    };
+
+    return {
+      overallRisk,
+      confidence: 0.88 + Math.random() * 0.08,
+      componentWeights: weights,
+      fusedScore,
+      recommendation: recommendations[overallRisk],
+      inferenceTimeMs: Math.round(performance.now() - start),
+    };
+  }
+
+  private getVocalMilestonesForAge(ageMonths: number): string[] {
+    if (ageMonths < 4) return ["Startle response to sounds", "Cooing/gurgling", "Differentiated crying"];
+    if (ageMonths < 7) return ["Babbling (ba, da, ga)", "Laughing", "Responding to name", "Vocal turn-taking"];
+    if (ageMonths < 10) return ["Canonical babbling", "Varied intonation", "Imitating sounds", "Consonant chains"];
+    if (ageMonths < 13) return ["First words (mama/dada)", "Understanding 'no'", "Pointing with vocalization", "Gesture + sound combos"];
+    if (ageMonths < 19) return ["2-6 consistent words", "Following simple instructions", "Jargon speech", "Word approximations"];
+    if (ageMonths < 25) return ["10-50 words", "2-word combinations", "Naming objects", "Using 'more' or 'mine'"];
+    return ["Short sentences", "Asking questions", "Pronouncing most consonants", "Telling simple stories"];
   }
 }

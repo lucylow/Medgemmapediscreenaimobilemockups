@@ -21,6 +21,7 @@ import { GrowthTracker } from "./screens/GrowthTracker";
 import { QRPatientCard } from "./screens/QRPatientCard";
 import { QRScannerScreen } from "./screens/QRScannerScreen";
 import { EdgeDiagnosticsScreen } from "./screens/EdgeDiagnosticsScreen";
+import { MedGemmaModelsScreen } from "./screens/MedGemmaModelsScreen";
 
 export const router = createBrowserRouter([
   {
@@ -110,5 +111,9 @@ export const router = createBrowserRouter([
   {
     path: "/edge-diagnostics",
     Component: EdgeDiagnosticsScreen,
+  },
+  {
+    path: "/medgemma-models",
+    Component: MedGemmaModelsScreen,
   },
 ]);

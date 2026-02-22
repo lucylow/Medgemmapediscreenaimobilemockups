@@ -1,7 +1,8 @@
 import { ScreeningSession } from "../data/types";
 import { LocalInferenceResult, LocalSummaryResult, ModelProvenance } from "./inferenceSchemas";
 import { encodeFeaturesForModel, featuresToFloat32Array } from "./featureEncoding";
-import { LocalModelRuntime } from "./LocalModelRuntime";
+import { LocalModelRuntime, MedGemmaRuntimeCapabilities } from "./LocalModelRuntime";
+import type { VocalAnalysisInput, VocalAnalysisResult, PoseEstimationInput, PoseEstimationResult, FusionInput, FusionResult } from "./medgemmaSchemas";
 
 export class EdgeAiEngine {
   private runtime: LocalModelRuntime;
@@ -10,6 +11,9 @@ export class EdgeAiEngine {
   private _lastInferenceTimeMs = 0;
   private _lastSummaryTimeMs = 0;
   private _inferenceCount = 0;
+  private _vocalCount = 0;
+  private _poseCount = 0;
+  private _fusionCount = 0;
 
   constructor(runtime: LocalModelRuntime) {
     this.runtime = runtime;
@@ -40,6 +44,26 @@ export class EdgeAiEngine {
 
   get inferenceCount(): number {
     return this._inferenceCount;
+  }
+
+  get vocalCount(): number {
+    return this._vocalCount;
+  }
+
+  get poseCount(): number {
+    return this._poseCount;
+  }
+
+  get fusionCount(): number {
+    return this._fusionCount;
+  }
+
+  get totalInferenceCount(): number {
+    return this._inferenceCount + this._vocalCount + this._poseCount + this._fusionCount;
+  }
+
+  getCapabilities(): MedGemmaRuntimeCapabilities {
+    return this.runtime.getCapabilities();
   }
 
   getModelProvenance(mode: "mock" | "local-model" = "mock"): ModelProvenance {
@@ -77,5 +101,32 @@ export class EdgeAiEngine {
     });
     this._lastSummaryTimeMs = performance.now() - start;
     return summary;
+  }
+
+  async runVocalAnalysis(input: VocalAnalysisInput): Promise<VocalAnalysisResult | null> {
+    if (!this._ready) await this.warmup();
+    if (!this.runtime.runVocalAnalysis) return null;
+
+    const result = await this.runtime.runVocalAnalysis(input);
+    this._vocalCount++;
+    return result;
+  }
+
+  async runPoseEstimation(input: PoseEstimationInput): Promise<PoseEstimationResult | null> {
+    if (!this._ready) await this.warmup();
+    if (!this.runtime.runPoseEstimation) return null;
+
+    const result = await this.runtime.runPoseEstimation(input);
+    this._poseCount++;
+    return result;
+  }
+
+  async runFusion(input: FusionInput): Promise<FusionResult | null> {
+    if (!this._ready) await this.warmup();
+    if (!this.runtime.runFusion) return null;
+
+    const result = await this.runtime.runFusion(input);
+    this._fusionCount++;
+    return result;
   }
 }
