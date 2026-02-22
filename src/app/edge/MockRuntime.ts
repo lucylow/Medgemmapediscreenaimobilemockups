@@ -36,6 +36,92 @@ import {
   generateMRIClinicalSummary,
 } from "../mri/mriSchemas";
 
+const CONCERN_KEYWORDS = [
+  "not", "no", "can't", "cannot", "concern", "worry", "delay", "behind",
+  "trouble", "difficult", "regression", "lost", "stopped", "won't",
+  "refuses", "never", "limited", "poor", "weak", "absent",
+];
+
+const POSITIVE_KEYWORDS = [
+  "good", "well", "typical", "normal", "fine", "healthy", "strong",
+  "advanced", "ahead", "great", "excellent", "progressing",
+];
+
+const RED_FLAG_PATTERNS = [
+  { pattern: /no babbl/i, minAge: 12 },
+  { pattern: /not walking|can't walk/i, minAge: 18 },
+  { pattern: /no words|not talking/i, minAge: 24 },
+  { pattern: /not sitting|can't sit/i, minAge: 9 },
+  { pattern: /no eye contact/i, minAge: 0 },
+  { pattern: /hand.?flap|spinning|rocking/i, minAge: 0 },
+  { pattern: /regression|lost skills|stopped doing/i, minAge: 0 },
+  { pattern: /no pointing/i, minAge: 12 },
+  { pattern: /not responding.*name/i, minAge: 9 },
+  { pattern: /seizure|convuls/i, minAge: 0 },
+];
+
+const DOMAIN_RECOMMENDATIONS: Record<string, string[]> = {
+  communication: [
+    "Read aloud daily with pointing and naming objects",
+    "Narrate daily activities using short, clear phrases",
+    "Sing simple songs and nursery rhymes together",
+    "Model 2-3 word phrases during mealtimes and play",
+    "Respond to and expand on your child's vocalizations",
+  ],
+  gross_motor: [
+    "Practice supervised tummy time daily (for younger infants)",
+    "Encourage climbing safe structures and active play",
+    "Offer push/pull toys to develop walking confidence",
+    "Play ball-rolling and kicking games at appropriate age",
+    "Provide safe spaces for crawling, cruising, and walking practice",
+  ],
+  fine_motor: [
+    "Offer age-appropriate stacking blocks and nesting toys",
+    "Provide crayons and paper for scribbling practice",
+    "Practice self-feeding with finger foods",
+    "Play with playdough to strengthen hand muscles",
+    "Thread large beads or pasta on string (supervised)",
+  ],
+  social: [
+    "Arrange regular playdates with same-age peers",
+    "Play interactive games like peek-a-boo and pat-a-cake",
+    "Practice turn-taking during simple games",
+    "Model and label emotions during daily routines",
+    "Encourage imitation games and pretend play",
+  ],
+  cognitive: [
+    "Play cause-and-effect toys (buttons, switches, pop-ups)",
+    "Practice object permanence with hiding games",
+    "Sort objects by color, shape, or size together",
+    "Read interactive books with flaps and textures",
+    "Encourage exploration with safe household objects",
+  ],
+};
+
+function analyzeObservationText(text: string): number {
+  const lowerText = text.toLowerCase();
+  const concernCount = CONCERN_KEYWORDS.filter((kw) => lowerText.includes(kw)).length;
+  const positiveCount = POSITIVE_KEYWORDS.filter((kw) => lowerText.includes(kw)).length;
+  return Math.max(-0.3, Math.min(0.5, concernCount * 0.12 - positiveCount * 0.08));
+}
+
+function detectRedFlags(text: string, ageMonths: number): string[] {
+  const flags: string[] = [];
+  for (const { pattern, minAge } of RED_FLAG_PATTERNS) {
+    if (ageMonths >= minAge && pattern.test(text)) {
+      flags.push(pattern.source.replace(/\\.|[\(\)\|\/\?]/g, " ").trim());
+    }
+  }
+  return flags;
+}
+
+function ageRiskMultiplier(ageMonths: number): number {
+  if (ageMonths < 12) return 1.3;
+  if (ageMonths < 24) return 1.15;
+  if (ageMonths < 36) return 1.05;
+  return 1.0;
+}
+
 function scoreToRisk(score: number): RiskLevel {
   if (score >= 0.75) return "on_track";
   if (score >= 0.5) return "monitor";
@@ -45,6 +131,13 @@ function scoreToRisk(score: number): RiskLevel {
 
 export class MockRuntime implements LocalModelRuntime {
   private initTime = 0;
+  private _observationContext = "";
+  private _ageContext = 0;
+
+  setObservationContext(text: string, ageMonths: number): void {
+    this._observationContext = text;
+    this._ageContext = ageMonths;
+  }
 
   async initialize(): Promise<void> {
     const start = performance.now();
@@ -64,11 +157,19 @@ export class MockRuntime implements LocalModelRuntime {
     await new Promise((res) => setTimeout(res, 400 + Math.random() * 200));
 
     const domains: DomainType[] = ["communication", "gross_motor", "fine_motor", "social", "cognitive"];
+    const ageMonths = Math.round(features[0] * 72);
+    const effectiveAge = this._ageContext || ageMonths;
+
+    const observationBias = analyzeObservationText(this._observationContext);
+    const ageMult = ageRiskMultiplier(effectiveAge);
+    const redFlags = detectRedFlags(this._observationContext, effectiveAge);
+    const redFlagPenalty = Math.min(0.25, redFlags.length * 0.1);
 
     const domainRisks: EdgeDomainRisk[] = domains.map((domain, i) => {
       const rawScore = features[i + 1];
-      const jitter = (Math.random() - 0.5) * 0.1;
-      const score = Math.max(0, Math.min(1, rawScore + jitter));
+      const jitter = (Math.random() - 0.5) * 0.08;
+      const adjusted = rawScore * ageMult - observationBias - redFlagPenalty + jitter;
+      const score = Math.max(0, Math.min(1, adjusted));
       return { domain, risk: scoreToRisk(score), score };
     });
 
@@ -77,15 +178,25 @@ export class MockRuntime implements LocalModelRuntime {
 
     const strengths = domainRisks
       .filter((d) => d.risk === "on_track")
-      .map((d) => `${DOMAIN_LABELS[d.domain]} skills appear on track`);
+      .map((d) => `${DOMAIN_LABELS[d.domain]} skills appear on track for ${effectiveAge}-month-old`);
 
     const watchAreas = domainRisks
       .filter((d) => d.risk !== "on_track")
       .map((d) => DOMAIN_LABELS[d.domain]);
 
-    const keyFindings = domainRisks
-      .filter((d) => d.risk === "monitor" || d.risk === "discuss" || d.risk === "refer")
-      .map((d) => `${DOMAIN_LABELS[d.domain]} may benefit from additional support`);
+    const keyFindings: string[] = [];
+    if (redFlags.length > 0) {
+      keyFindings.push(`RED FLAG: ${redFlags.length} clinical concern(s) identified from observations`);
+    }
+    domainRisks
+      .filter((d) => d.risk === "refer")
+      .forEach((d) => keyFindings.push(`${DOMAIN_LABELS[d.domain]}: REFERRAL recommended — score significantly below age expectations`));
+    domainRisks
+      .filter((d) => d.risk === "discuss")
+      .forEach((d) => keyFindings.push(`${DOMAIN_LABELS[d.domain]}: Discuss with provider — emerging concerns`));
+    domainRisks
+      .filter((d) => d.risk === "monitor")
+      .forEach((d) => keyFindings.push(`${DOMAIN_LABELS[d.domain]}: Monitor — borderline for age`));
 
     return {
       sessionId: "edge_session",
@@ -103,10 +214,14 @@ export class MockRuntime implements LocalModelRuntime {
 
     const onTrack = inference.domainRisks.filter((d) => d.risk === "on_track");
     const concerns = inference.domainRisks.filter((d) => d.risk !== "on_track");
+    const redFlags = detectRedFlags(parentConcerns || "", ageMonths);
 
     let parentSummary: string;
     if (concerns.length === 0) {
       parentSummary = `This screening suggests your ${ageMonths}-month-old is developing well across all areas assessed. Keep up the great work with your child's learning and play activities!`;
+    } else if (redFlags.length > 0) {
+      const concernNames = concerns.map((d) => DOMAIN_LABELS[d.domain].toLowerCase()).join(" and ");
+      parentSummary = `This screening has identified areas in ${concernNames} that would benefit from professional evaluation. Some of the patterns described suggest it would be helpful to discuss your child's development with a healthcare provider soon. Early support can make a significant difference — many children thrive with the right help at the right time.`;
     } else {
       const concernNames = concerns.map((d) => DOMAIN_LABELS[d.domain].toLowerCase()).join(" and ");
       const strengthNames = onTrack.map((d) => DOMAIN_LABELS[d.domain].toLowerCase()).join(", ");
@@ -116,13 +231,22 @@ export class MockRuntime implements LocalModelRuntime {
     const domainLines = inference.domainRisks.map(
       (d) => `${DOMAIN_LABELS[d.domain]}: ${(d.score * 100).toFixed(0)}% — ${d.risk.toUpperCase()}`
     );
-    const clinicianSummary = `Edge AI screening for ${ageMonths}-month-old child.\n${domainLines.join("\n")}\nOverall: ${inference.overallRisk.toUpperCase()} (${(inference.overallScore * 100).toFixed(0)}%)\nNote: AI-generated draft. Clinician review required.`;
+    const redFlagLine = redFlags.length > 0
+      ? `\nRED FLAGS DETECTED (${redFlags.length}): ${redFlags.join("; ")}\n`
+      : "";
+    const clinicianSummary = `Edge AI screening for ${ageMonths}-month-old child.${redFlagLine}\n${domainLines.join("\n")}\nOverall: ${inference.overallRisk.toUpperCase()} (${(inference.overallScore * 100).toFixed(0)}%)\nAge-adjusted risk multiplier: ${ageRiskMultiplier(ageMonths).toFixed(2)}x\nObservation concern score: ${analyzeObservationText(parentConcerns || "").toFixed(2)}\nNote: AI-generated draft. Clinician review required.`;
 
     const nextSteps: string[] = [];
+    if (redFlags.length > 0) {
+      nextSteps.push("PRIORITY: Schedule appointment with developmental pediatrician within 2 weeks.");
+    }
     if (concerns.length > 0) {
       nextSteps.push("Share this summary with your child's doctor, nurse, or health worker.");
       concerns.forEach((d) => {
-        nextSteps.push(`Try activities at home that support ${DOMAIN_LABELS[d.domain].toLowerCase()} development.`);
+        const domainKey = d.domain === "gross_motor" || d.domain === "fine_motor" ? d.domain : d.domain;
+        const recs = DOMAIN_RECOMMENDATIONS[domainKey] || DOMAIN_RECOMMENDATIONS.cognitive;
+        const topRecs = recs.slice(0, 2);
+        nextSteps.push(`${DOMAIN_LABELS[d.domain]}: ${topRecs.join("; ")}`);
       });
     }
     nextSteps.push("Repeat this screening in 3\u20136 months or sooner if you have concerns.");

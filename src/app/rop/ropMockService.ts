@@ -8,12 +8,38 @@ import type {
 } from "./ropTypes";
 
 export function generateMockImageQuality(): ImageQualityMetrics {
+  const pupilDilation = 0.7 + Math.random() * 0.25;
+  const focusSharpness = 0.75 + Math.random() * 0.2;
+  const lightingEvenness = 0.7 + Math.random() * 0.25;
+  const vascularContrast = 0.65 + Math.random() * 0.3;
+
+  const overall = Math.round(
+    (pupilDilation * 0.4 +
+      focusSharpness * 0.25 +
+      lightingEvenness * 0.20 +
+      vascularContrast * 0.15) * 100
+  );
+
   return {
-    pupilDilation: 0.7 + Math.random() * 0.25,
-    focusSharpness: 0.75 + Math.random() * 0.2,
-    lightingEvenness: 0.7 + Math.random() * 0.25,
-    vascularContrast: 0.65 + Math.random() * 0.3,
-    overall: Math.round(75 + Math.random() * 20),
+    pupilDilation,
+    focusSharpness,
+    lightingEvenness,
+    vascularContrast,
+    overall: Math.max(0, Math.min(100, overall)),
+  };
+}
+
+export function simulateMedSigLIPEmbedding(): {
+  embedding: Float32Array;
+  latencyMs: number;
+} {
+  const embedding = new Float32Array(512);
+  for (let i = 0; i < 512; i++) {
+    embedding[i] = (Math.sin(i * 0.1) + 1) / 2;
+  }
+  return {
+    embedding,
+    latencyMs: Math.round(180 + Math.random() * 120),
   };
 }
 
@@ -122,7 +148,11 @@ export async function analyzeROPFrame(
   metadata: ROPMetadata
 ): Promise<ROPScreeningResult> {
   const start = performance.now();
-  await new Promise((res) => setTimeout(res, 1200 + Math.random() * 800));
+
+  const medsigLip = simulateMedSigLIPEmbedding();
+  await new Promise((res) => setTimeout(res, medsigLip.latencyMs));
+
+  await new Promise((res) => setTimeout(res, 800 + Math.random() * 600));
 
   const ga = metadata.gestationalAge;
   const pma = metadata.postMenstrualAge;
@@ -136,53 +166,95 @@ export async function analyzeROPFrame(
   const tortuosity = 1 + Math.random() * 6;
   const dilation = 0.5 + Math.random() * 5;
 
-  const etropType = plusDisease
+  const isType1 = plusDisease ||
+    (zone === "I" && stage >= 3) ||
+    (zone === "I" && stage === 2 && tortuosity > 5);
+  const isType2 = !isType1 && (
+    (zone === "I" && stage >= 1) ||
+    (zone === "II" && stage >= 2) ||
+    (zone === "II" && stage === 3 && !plusDisease)
+  );
+
+  const etropType = isType1
     ? "Type 1 ROP - Treatment Required"
-    : zone === "I" && stage >= 2
-    ? "Type 1 Pre-threshold"
-    : zone === "II" && stage >= 2
-    ? "Type 2 - Close Observation"
-    : "Type 2 Immature";
+    : isType2
+    ? "Type 2 ROP - Close Observation"
+    : stage === 0
+    ? "Immature Retina - Normal for GA"
+    : "Type 2 - Low Risk";
+
+  const urgency: "emergent" | "urgent" | "monitor" | "routine" = isType1
+    ? (plusDisease ? "emergent" : "urgent")
+    : isType2
+    ? "monitor"
+    : "routine";
+
+  const avShuntDetected = zone === "I" && stage >= 2 && tortuosity > 4;
 
   const keyFindings: string[] = [
     `Zone ${zone}, Stage ${stage} ROP in ${ga < 28 ? "extreme" : ga < 32 ? "very" : "moderate"} preterm infant`,
+    `ETROP Classification: ${etropType}`,
+    `Urgency: ${urgency.toUpperCase()}`,
     `Gestational age: ${ga} weeks, PMA: ${pma} weeks`,
-    `Vascular tortuosity index: ${tortuosity.toFixed(1)}/10`,
-    `Arteriolar dilation: ${dilation.toFixed(1)}/10`,
+    `Vascular tortuosity index: ${tortuosity.toFixed(1)}/10${tortuosity > 5 ? " (ELEVATED)" : ""}`,
+    `Arteriolar dilation: ${dilation.toFixed(1)}/10${dilation > 5 ? " (ELEVATED)" : ""}`,
     plusDisease ? "Plus disease PRESENT - urgent ophthalmology referral" : "No plus disease detected",
-    `Image quality: ${quality.overall}% (pupil ${(quality.pupilDilation * 100).toFixed(0)}%, focus ${(quality.focusSharpness * 100).toFixed(0)}%)`,
+    avShuntDetected ? "AV shunt detected - vascular abnormality in zone boundary" : "No AV shunt detected",
+    `Image quality: ${quality.overall}% (pupil ${(quality.pupilDilation * 100).toFixed(0)}%, focus ${(quality.focusSharpness * 100).toFixed(0)}%, lighting ${(quality.lightingEvenness * 100).toFixed(0)}%, vascular ${(quality.vascularContrast * 100).toFixed(0)}%)`,
+    `MedSigLIP embedding: 512-dim vector (${medsigLip.latencyMs}ms)`,
   ];
 
-  const clinicalSummary = `${etropType} detected in ${ga}-week GA infant at PMA ${pma} weeks. ${
-    plusDisease
-      ? "Plus disease present with significant tortuosity and dilation. Immediate anti-VEGF or laser treatment indicated per ETROP criteria."
-      : `No plus disease. ${stage >= 2 ? "Close serial examination recommended per AAP guidelines." : "Routine ROP screening schedule appropriate."}`
-  }`;
+  const clinicalSummary = `${etropType} detected in ${ga}-week GA infant at PMA ${pma} weeks. ` +
+    (plusDisease
+      ? `Plus disease present with tortuosity ${tortuosity.toFixed(1)}/10 and dilation ${dilation.toFixed(1)}/10. Immediate anti-VEGF or laser treatment indicated per ETROP criteria.`
+      : isType1
+      ? `Type 1 criteria met (Zone ${zone}, Stage ${stage}). Prompt treatment evaluation recommended per ETROP guidelines.`
+      : isType2
+      ? `Type 2 criteria met. Close serial examination recommended per AAP guidelines with ${stage >= 2 ? "weekly" : "biweekly"} follow-up.`
+      : stage === 0
+      ? `Immature retinal vasculature consistent with gestational age. Routine screening per AAP schedule.`
+      : `Low-risk findings. Routine ROP screening schedule appropriate.`) +
+    (avShuntDetected ? " Arteriovenous shunt detected at zone boundary — monitor closely for progression." : "");
 
   const recommendations = [
-    ...(plusDisease
+    ...(urgency === "emergent"
       ? [{
           priority: "immediate" as const,
-          action: "Urgent pediatric ophthalmology referral for anti-VEGF/laser evaluation",
+          action: "EMERGENT: Pediatric ophthalmology referral within 24-48h for anti-VEGF/laser evaluation (ETROP Type 1)",
+          timeline: "immediate" as const,
+          evidence_level: "A" as const,
+        }]
+      : urgency === "urgent"
+      ? [{
+          priority: "immediate" as const,
+          action: "URGENT: Ophthalmology evaluation within 72h for Type 1 ROP treatment planning",
           timeline: "immediate" as const,
           evidence_level: "A" as const,
         }]
       : []),
     {
-      priority: stage >= 2 ? ("high" as const) : ("medium" as const),
-      action: `Follow-up ROP examination in ${stage >= 2 ? "1" : "2"} weeks`,
-      timeline: stage >= 2 ? ("7d" as const) : ("14d" as const),
+      priority: isType1 ? ("immediate" as const) : stage >= 2 ? ("high" as const) : ("medium" as const),
+      action: `Follow-up ROP examination in ${isType1 ? "3-7 days" : isType2 ? "1 week" : stage >= 1 ? "2 weeks" : "4 weeks"} per ETROP protocol`,
+      timeline: isType1 ? ("7d" as const) : isType2 ? ("7d" as const) : ("14d" as const),
       evidence_level: "A" as const,
     },
     {
       priority: "medium" as const,
-      action: "Document findings in NICU chart with zone/stage/plus notation",
+      action: `Document Zone ${zone}/Stage ${stage}/${plusDisease ? "Plus+" : "Plus-"} in NICU chart with ETROP classification`,
       timeline: "immediate" as const,
       evidence_level: "B" as const,
     },
+    ...(avShuntDetected
+      ? [{
+          priority: "high" as const,
+          action: "Monitor AV shunt at zone boundary — risk of rapid progression",
+          timeline: "7d" as const,
+          evidence_level: "B" as const,
+        }]
+      : []),
     {
       priority: "low" as const,
-      action: "Continue standard NICU care with oxygen saturation monitoring",
+      action: "Continue oxygen saturation targeting per unit protocol (SpO2 91-95% for preterm)",
       timeline: "28d" as const,
       evidence_level: "A" as const,
     },

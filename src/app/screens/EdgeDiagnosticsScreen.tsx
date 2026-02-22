@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { MobileContainer } from "../components/MobileContainer";
 import { useEdgeStatus } from "../edge/EdgeStatusContext";
-import { ArrowLeft, Cpu, CheckCircle, XCircle, Activity, Clock, Zap, BarChart3 } from "lucide-react";
+import { ArrowLeft, Cpu, CheckCircle, XCircle, Activity, Clock, Zap, BarChart3, Database, RefreshCw } from "lucide-react";
 
 export function EdgeDiagnosticsScreen() {
   const navigate = useNavigate();
-  const { engine, ready, mode, lastError } = useEdgeStatus();
+  const { engine, ready, mode, warmupTimeMs, cacheHits, cacheMisses, cacheSize, lastError, switchRuntime, refreshStats } = useEdgeStatus();
   const [benchmarkRunning, setBenchmarkRunning] = useState(false);
+  const [switchingRuntime, setSwitchingRuntime] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(refreshStats, 2000);
+    return () => clearInterval(interval);
+  }, [refreshStats]);
   const [benchmarkResult, setBenchmarkResult] = useState<{
     inferenceMs: number;
     summaryMs: number;
@@ -60,6 +66,7 @@ export function EdgeDiagnosticsScreen() {
       const summaryMs = performance.now() - start2;
 
       setBenchmarkResult({ inferenceMs, summaryMs });
+      refreshStats();
     } catch {
       setBenchmarkResult(null);
     } finally {
@@ -113,14 +120,83 @@ export function EdgeDiagnosticsScreen() {
           <div className="space-y-3">
             <h3 className="font-bold text-[#1A1A1A]">Model Information</h3>
             <div className="bg-white border-2 border-gray-100 rounded-2xl divide-y divide-gray-100">
-              <InfoRow icon={<Activity className="w-4 h-4" />} label="Runtime Mode" value={mode === "mock" ? "Demo (Mock)" : "Local Model"} />
+              <InfoRow icon={<Activity className="w-4 h-4" />} label="Runtime Mode" value={mode === "mock" ? "Demo (Mock)" : "TFLite INT4"} />
               <InfoRow icon={<Cpu className="w-4 h-4" />} label="Model ID" value={provenance?.modelId || "—"} />
               <InfoRow icon={<Zap className="w-4 h-4" />} label="Version" value={provenance?.version || "—"} />
-              <InfoRow icon={<Clock className="w-4 h-4" />} label="Warmup Time" value={engine ? `${engine.warmupTimeMs.toFixed(0)}ms` : "—"} />
+              <InfoRow icon={<Clock className="w-4 h-4" />} label="Warmup Time" value={warmupTimeMs > 0 ? `${warmupTimeMs.toFixed(0)}ms` : "—"} />
               <InfoRow icon={<BarChart3 className="w-4 h-4" />} label="Inference Count" value={engine ? String(engine.inferenceCount) : "0"} />
               <InfoRow icon={<Clock className="w-4 h-4" />} label="Last Inference" value={engine && engine.lastInferenceTimeMs > 0 ? `${engine.lastInferenceTimeMs.toFixed(0)}ms` : "—"} />
               <InfoRow icon={<Clock className="w-4 h-4" />} label="Last Summary" value={engine && engine.lastSummaryTimeMs > 0 ? `${engine.lastSummaryTimeMs.toFixed(0)}ms` : "—"} />
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-bold text-[#1A1A1A]">Inference Cache</h3>
+            <div className="bg-white border-2 border-gray-100 rounded-2xl divide-y divide-gray-100">
+              <InfoRow icon={<Database className="w-4 h-4" />} label="Cache Size" value={`${cacheSize} entries`} />
+              <InfoRow icon={<CheckCircle className="w-4 h-4" />} label="Cache Hits" value={String(cacheHits)} />
+              <InfoRow icon={<XCircle className="w-4 h-4" />} label="Cache Misses" value={String(cacheMisses)} />
+              <InfoRow
+                icon={<BarChart3 className="w-4 h-4" />}
+                label="Hit Rate"
+                value={
+                  cacheHits + cacheMisses > 0
+                    ? `${((cacheHits / (cacheHits + cacheMisses)) * 100).toFixed(0)}%`
+                    : "—"
+                }
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-bold text-[#1A1A1A]">Runtime Selection</h3>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  setSwitchingRuntime(true);
+                  await switchRuntime("mock");
+                  setSwitchingRuntime(false);
+                }}
+                disabled={switchingRuntime || mode === "mock"}
+                className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-colors ${
+                  mode === "mock"
+                    ? "bg-[#1A73E8] text-white"
+                    : "bg-gray-100 text-[#666666] hover:bg-gray-200"
+                } disabled:opacity-50`}
+              >
+                Mock Runtime
+              </button>
+              <button
+                onClick={async () => {
+                  setSwitchingRuntime(true);
+                  await switchRuntime("tflite");
+                  setSwitchingRuntime(false);
+                }}
+                disabled={switchingRuntime || mode === "tflite"}
+                className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-colors ${
+                  mode === "tflite"
+                    ? "bg-[#34A853] text-white"
+                    : "bg-gray-100 text-[#666666] hover:bg-gray-200"
+                } disabled:opacity-50`}
+              >
+                {switchingRuntime ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Loading...
+                  </span>
+                ) : (
+                  "TFLite Runtime"
+                )}
+              </button>
+            </div>
+            {mode === "tflite" && (
+              <div className="bg-[#E6F4EA] rounded-xl p-3">
+                <p className="text-xs text-[#34A853] font-semibold">TFLite INT4 Active</p>
+                <p className="text-xs text-[#137333] mt-1">
+                  On-device inference via MedGemma-2B-IT-Q4. Production path: ONNX Runtime Web + WebAssembly for browser, LiteRT + NNAPI for Android, CoreML for iOS.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">

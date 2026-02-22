@@ -45,12 +45,15 @@ The application is built with React 18 and Vite 6, utilizing Tailwind CSS v4 for
 
 ## Edge AI Architecture
 - **EdgeAiEngine**: Orchestrates on-device inference and summary generation via pluggable LocalModelRuntime interface
-- **MockRuntime**: Demo runtime with simulated 300-600ms latency, produces realistic risk classifications
+- **MockRuntime**: Demo runtime with 300-600ms latency, concern keyword detection (30+ keywords), red flag pattern matching (10 clinical patterns), age-adjusted risk multiplier (1.3x <12mo, 1.15x <24mo), domain-specific home activity recommendations
+- **TFLiteRuntime**: Production stub implementing LocalModelRuntime for MedGemma-2B-IT-Q4 (450MB), production path via ONNX Runtime Web + WebAssembly
 - **Feature Encoding**: Converts ScreeningSession answers to normalized float vectors for model input
-- **EdgeStatusContext**: React context providing model readiness state, warmup status, inference count
+- **Caching Layer**: Stable input hashing (age + domains + concerns + media), 5-minute TTL, max 50 entries LRU eviction, hit/miss statistics
+- **EdgeStatusContext**: React context with pluggable runtime selection (mock/tflite), cache stats, async runtime switching
 - **Integration**: Edge AI toggle on ScreeningSummary, results persisted through submitSession() override
-- **Diagnostics**: /edge-diagnostics route shows model info, benchmark latency, runtime metrics
+- **Diagnostics**: /edge-diagnostics route shows model info, cache stats (hits/misses/rate), runtime switcher, benchmark latency
 - **Provenance**: Edge results tagged with "medgemma-pediscreen-edge" model ID
+- **ROP ETROP Classification**: Zone I/II/III, Stage 0-3, Plus disease (tortuosity/dilation 0-10), urgency stratification (emergent/urgent/monitor/routine), AV shunt detection, MedSigLIP 512-dim embedding simulation (180-300ms)
 - **Multi-Modal Models**: Vocal analysis (cry classification, babbling milestones), Pose estimation (BIMS scoring, motor milestones), X-ray bone age (Greulich-Pyle, skeletal landmarks)
 - **MedGemma Registry**: 8 model variants (PediScreen 2B, Vocal LoRA, MoveNet Infant/Child, BoneAge GP, CT 2B-IT Q4, MRI NeuroNet, Fusion Ensemble)
 - **X-ray Analysis**: Bone age assessment with Z-score, percentile, growth velocity, fracture risk, ICD-10 codes, longitudinal timeline
