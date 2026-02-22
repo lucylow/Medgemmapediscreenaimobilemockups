@@ -18,6 +18,7 @@ import {
 } from "../data/types";
 import { hapticRiskLevel, hapticImpact } from "../platform/haptics";
 import { sendRiskAlert } from "../platform/notifications";
+import { BlockchainCard } from "../components/BlockchainCard";
 
 const riskIcons: Record<RiskLevel, typeof CheckCircle> = {
   on_track: CheckCircle,
@@ -193,6 +194,13 @@ export function ScreeningResults() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          <BlockchainCard
+            screeningId={result.sessionId}
+            report={{ overallRisk: result.overallRisk, ageMonths: result.ageMonths, domains: result.domainRisks }}
+            childName={child?.displayName || "Unknown"}
+            riskLevel={result.overallRisk}
+          />
 
           <div className="bg-[#E8F0FE] rounded-2xl p-4">
             <p className="text-sm text-[#1A73E8]">

@@ -73,6 +73,14 @@ The application is built with React 18 and Vite 6, utilizing Tailwind CSS v4 for
 - **FHIR Integration**: All metrics exported as FHIR R4 Observations with LOINC codes (80404-7, 55423-8, 93832-4, 2708-6, 52488-0)
 - **Navigation**: Tab bar entry ("Wearable"), dashboard quick action card, /wearable and /wearable-hrv routes
 
+## Blockchain Audit Trail (Web3Auth + Polygon Mumbai)
+- **BlockchainContext** (`src/app/blockchain/BlockchainContext.tsx`): Provider managing wallet connection (Web3Auth mock), screening anchoring, audit trail, and on-chain statistics with localStorage persistence
+- **Blockchain Utils** (`src/app/blockchain/blockchainUtils.ts`): Hash computation (screening + report), mock transaction/wallet generation, localStorage CRUD for records and audit entries, integrity verification
+- **BlockchainCard** (`src/app/components/BlockchainCard.tsx`): Reusable component for anchoring screenings on-chain, shows screening/report hashes, wallet address, transaction confirmation with PolygonScan link
+- **BlockchainAuditScreen** (`src/app/screens/BlockchainAuditScreen.tsx`): Full audit dashboard with wallet management, on-chain statistics (records anchored, integrity score, gas used, cost), audit trail with risk levels, transaction history with block numbers/confirmations
+- **Integration**: BlockchainCard embedded in ScreeningResults page, Dashboard quick action card, /blockchain-audit route, BlockchainProvider wrapped in App.tsx
+- **Specs**: Polygon Mumbai testnet, ~50k gas/tx, ~$0.01/tx, non-custodial Web3Auth wallet, tamper-proof clinical record anchoring
+
 ## Mock Data System (500+ Scenarios)
 - **Child Profiles** (`src/mock-data/child-profiles.ts`): 50+ diverse child names with sex, language, region. CHW names, clinic locations. Seeded RNG utilities for deterministic generation.
 - **Clinical Observations** (`src/mock-data/observations.ts`): Domain-specific observations across 9 age bands (0-3mo through 49-60mo) for 5 developmental domains (communication, gross_motor, fine_motor, problem_solving, personal_social). Each domain has 4 severity levels (on_track, monitor, concern, red_flag) with clinically accurate observation text. Includes ICD-10 code mappings and evidence-graded recommendations by risk level.

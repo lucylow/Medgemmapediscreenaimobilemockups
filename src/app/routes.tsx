@@ -38,6 +38,7 @@ import { ScreeningInputScreen } from "./screens/ScreeningInputScreen";
 import { EnhancedResultsScreen } from "./screens/EnhancedResultsScreen";
 import { WearableDashboard } from "./screens/WearableDashboard";
 import { WearableHRVScreen } from "./screens/WearableHRVScreen";
+import { BlockchainAuditScreen } from "./screens/BlockchainAuditScreen";
 
 export const router = createBrowserRouter([
   {
@@ -195,5 +196,9 @@ export const router = createBrowserRouter([
   {
     path: "/wearable-hrv",
     Component: WearableHRVScreen,
+  },
+  {
+    path: "/blockchain-audit",
+    Component: BlockchainAuditScreen,
   },
 ]);
