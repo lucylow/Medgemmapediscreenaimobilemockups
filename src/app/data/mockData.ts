@@ -1,101 +1,110 @@
+import { getScreeningDataset, getScenarioStats, getRecentScreenings } from "../../mock-data/screening-scenarios";
+import type { ScreeningScenario } from "../../mock-data/screening-scenarios";
+
 export type RiskLevel = "REFERRAL" | "URGENT" | "MONITOR" | "ON-TRACK";
 
 export interface Patient {
   id: string;
+  name: string;
   age: string;
   gender: "M" | "F";
   risk: RiskLevel;
   condition: string;
   confidence: number;
+  domain: string;
   asqScore?: string;
   zScore?: number;
   gestationalAge?: string;
   timestamp: string;
+  chwName?: string;
+  setting?: string;
 }
 
-export const mockPatients: Patient[] = [
-  {
-    id: "CHW-001",
-    age: "24mo",
-    gender: "F",
-    risk: "REFERRAL",
-    condition: "Speech regression + no 50 words",
-    confidence: 97.3,
-    asqScore: "18/60 (3rd %ile)",
-    zScore: -2.3,
-    timestamp: "2026-02-21T09:15:00",
-  },
-  {
-    id: "CHW-023",
-    age: "32w GA",
-    gender: "M",
-    risk: "URGENT",
-    condition: "ROP Zone II Stage 2",
-    confidence: 94.8,
-    gestationalAge: "32w",
-    timestamp: "2026-02-21T08:45:00",
-  },
-  {
-    id: "CHW-045",
-    age: "18mo",
-    gender: "F",
-    risk: "URGENT",
-    condition: "No joint attention",
-    confidence: 91.2,
-    asqScore: "22/60 (8th %ile)",
-    timestamp: "2026-02-21T08:30:00",
-  },
-  {
-    id: "CHW-067",
-    age: "12mo",
-    gender: "M",
-    risk: "MONITOR",
-    condition: "Delayed walking",
-    confidence: 85.6,
-    asqScore: "38/60 (25th %ile)",
-    timestamp: "2026-02-21T07:20:00",
-  },
-  {
-    id: "CHW-089",
-    age: "36mo",
-    gender: "F",
-    risk: "MONITOR",
-    condition: "Fine motor delay",
-    confidence: 82.4,
-    timestamp: "2026-02-21T07:00:00",
-  },
-  {
-    id: "CHW-012",
-    age: "48mo",
-    gender: "M",
-    risk: "ON-TRACK",
-    condition: "All milestones achieved",
-    confidence: 96.7,
-    asqScore: "54/60 (75th %ile)",
-    timestamp: "2026-02-20T16:30:00",
-  },
-];
+function mapRisk(r: ScreeningScenario["riskLevel"]): RiskLevel {
+  const m: Record<string, RiskLevel> = {
+    on_track: "ON-TRACK",
+    monitor: "MONITOR",
+    urgent: "URGENT",
+    referral: "REFERRAL",
+  };
+  return m[r] || "MONITOR";
+}
+
+function domainLabel(d: string): string {
+  const labels: Record<string, string> = {
+    communication: "Communication",
+    gross_motor: "Gross Motor",
+    fine_motor: "Fine Motor",
+    problem_solving: "Problem Solving",
+    personal_social: "Personal-Social",
+    comprehensive: "Comprehensive",
+  };
+  return labels[d] || d;
+}
+
+function buildPatient(s: ScreeningScenario): Patient {
+  return {
+    id: s.id,
+    name: s.childName,
+    age: s.childAge < 12 ? `${s.childAge}mo` : `${s.childAge}mo`,
+    gender: s.childSex === "male" ? "M" : "F",
+    risk: mapRisk(s.riskLevel),
+    condition: s.clinicalSummary.slice(0, 80) + "...",
+    confidence: parseFloat((s.confidence * 100).toFixed(1)),
+    domain: domainLabel(s.domain),
+    asqScore: `${s.asq3Score}/60 (${s.asq3Percentile}th %ile)`,
+    zScore: s.riskLevel === "on_track" ? undefined : parseFloat((-1 - (s.confidence * 2)).toFixed(1)),
+    gestationalAge: s.gestationalAgeWeeks ? `${s.gestationalAgeWeeks}w` : undefined,
+    timestamp: s.timestamp,
+    chwName: s.chwName,
+    setting: s.setting,
+  };
+}
+
+const _dataset = getScreeningDataset();
+const _stats = getScenarioStats(_dataset);
+
+export const mockPatients: Patient[] = getRecentScreenings(20).map(buildPatient);
+
+export const allMockPatients: Patient[] = _dataset.map(buildPatient);
 
 export const riskCounts = {
-  REFERRAL: 2,
-  URGENT: 8,
-  MONITOR: 23,
-  "ON-TRACK": 14,
+  REFERRAL: _stats.byRisk.referral,
+  URGENT: _stats.byRisk.urgent,
+  MONITOR: _stats.byRisk.monitor,
+  "ON-TRACK": _stats.byRisk.on_track,
 };
 
+export const domainCounts = Object.entries(_stats.byDomain).map(([domain, count]) => ({
+  domain: domainLabel(domain),
+  count,
+}));
+
 export const chwLeaderboard = [
-  { name: "Maria", screenings: 247, savings: 2.3 },
-  { name: "Carlos", screenings: 189, savings: 1.8 },
-  { name: "Aisha", screenings: 176, savings: 1.6 },
-  { name: "Raj", screenings: 158, savings: 1.4 },
-  { name: "Sofia", screenings: 142, savings: 1.2 },
+  { name: "Maria Santos", screenings: 247, savings: 2.3, region: "Latin America" },
+  { name: "Carlos Mendoza", screenings: 189, savings: 1.8, region: "Latin America" },
+  { name: "Aisha Bello", screenings: 176, savings: 1.6, region: "West Africa" },
+  { name: "Raj Patel", screenings: 158, savings: 1.4, region: "South Asia" },
+  { name: "Sofia Chen", screenings: 142, savings: 1.2, region: "East Asia" },
+  { name: "Omar Hassan", screenings: 134, savings: 1.1, region: "MENA" },
+  { name: "Grace Okafor", screenings: 128, savings: 1.0, region: "West Africa" },
+  { name: "Luis Rivera", screenings: 115, savings: 0.9, region: "Latin America" },
+  { name: "Fatima Al-Rashid", screenings: 102, savings: 0.8, region: "MENA" },
+  { name: "James Kimathi", screenings: 97, savings: 0.7, region: "East Africa" },
 ];
 
 export const impactMetrics = {
   lifetimeSavings: 15.9,
-  childrenScreened: 1592,
-  earlyDetectionRate: 32,
-  totalCHWs: 47,
+  childrenScreened: _stats.total,
+  earlyDetectionRate: Math.round(
+    ((_stats.byRisk.urgent + _stats.byRisk.referral) / _stats.total) * 100
+  ),
+  totalCHWs: _stats.uniqueCHWs,
+  avgConfidence: _stats.avgConfidence,
+  avgInferenceTime: _stats.avgInferenceTime,
+  avgASQ3: _stats.avgASQ3,
+  preemieCount: _stats.preemieCount,
+  ageDistribution: _stats.ageDistribution,
 };
 
 export const growthData = [
@@ -113,3 +122,6 @@ export const milestones = [
   { text: "Uses 2-word combinations (24mo)", achieved: false },
   { text: "Follows 2-step commands (24mo)", achieved: false },
 ];
+
+export { getScreeningDataset, getRecentScreenings, getScenarioStats } from "../../mock-data/screening-scenarios";
+export type { ScreeningScenario } from "../../mock-data/screening-scenarios";

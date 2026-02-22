@@ -60,6 +60,13 @@ The application is built with React 18 and Vite 6, utilizing Tailwind CSS v4 for
 - **MRI Use Cases**: Neurodevelopmental delay (brain age gap), white matter tract integrity, myelination progression, ventriculomegaly screening
 - **Models Dashboard**: /medgemma-models shows full model registry with benchmarks and deployment strategy
 
+## Mock Data System (500+ Scenarios)
+- **Child Profiles** (`src/mock-data/child-profiles.ts`): 50+ diverse child names with sex, language, region. CHW names, clinic locations. Seeded RNG utilities for deterministic generation.
+- **Clinical Observations** (`src/mock-data/observations.ts`): Domain-specific observations across 9 age bands (0-3mo through 49-60mo) for 5 developmental domains (communication, gross_motor, fine_motor, problem_solving, personal_social). Each domain has 4 severity levels (on_track, monitor, concern, red_flag) with clinically accurate observation text. Includes ICD-10 code mappings and evidence-graded recommendations by risk level.
+- **Screening Scenarios** (`src/mock-data/screening-scenarios.ts`): Generates 500+ deterministic screening scenarios with seeded RNG. Each scenario includes: child demographics, domain-specific observations, CHW notes, risk levels (weighted: 40% on_track, 30% monitor, 18% urgent, 12% referral), ASQ-3 scores/percentiles, ICD-10 codes, key findings, clinical summaries, recommendations with priority/timeline/evidence, domain breakdowns, preemie cases, timestamps, and model inference metadata.
+- **Data Integration** (`src/app/data/mockData.ts`): Re-exports scenario data as Patient records, computes aggregate statistics (risk counts, domain counts, age distribution, avg confidence/inference time), feeds Dashboard mock dataset card and Impact Dashboard.
+- **Utility Functions**: `getScenariosByRisk()`, `getScenariosByDomain()`, `getScenariosByAgeRange()`, `getScenarioStats()`, `getRecentScreenings()` for filtering and analytics.
+
 ## External Dependencies
 - **UI Libraries**: Radix UI, Lucide icons, Recharts, Framer Motion
 - **Package Manager**: pnpm

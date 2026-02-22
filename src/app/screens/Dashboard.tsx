@@ -3,7 +3,7 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope, Camera, Ruler, QrCode, CloudOff, Wifi, Database, Shield } from "lucide-react";
+import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope, Camera, Ruler, QrCode, CloudOff, Wifi, Database, Shield, Brain, Clock, Baby } from "lucide-react";
 import { TabBar } from "../components/TabBar";
 import { motion } from "motion/react";
 import {
@@ -14,6 +14,7 @@ import {
   DOMAIN_ICONS,
 } from "../data/types";
 import { useOffline } from "../offline/OfflineContext";
+import { impactMetrics } from "../data/mockData";
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -51,6 +52,54 @@ export function Dashboard() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          <div className="rounded-2xl border-2 border-gray-100 bg-white p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Mock Dataset</h2>
+              <div className="flex items-center gap-1.5">
+                <Brain className="w-3.5 h-3.5 text-[#9C27B0]" />
+                <span className="text-xs text-[#9C27B0] font-semibold">{impactMetrics.childrenScreened} scenarios</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-[#F3E5F5] rounded-xl p-2.5 text-center">
+                <div className="text-lg font-bold text-[#9C27B0]">{(impactMetrics.avgConfidence * 100).toFixed(0)}%</div>
+                <div className="text-[10px] text-[#666666]">Avg Confidence</div>
+              </div>
+              <div className="bg-[#FFF3E0] rounded-xl p-2.5 text-center">
+                <div className="text-lg font-bold text-[#FF9800]">{impactMetrics.avgInferenceTime}ms</div>
+                <div className="text-[10px] text-[#666666]">Avg Inference</div>
+              </div>
+              <div className="bg-[#E3F2FD] rounded-xl p-2.5 text-center">
+                <div className="text-lg font-bold text-[#1A73E8]">{impactMetrics.earlyDetectionRate}%</div>
+                <div className="text-[10px] text-[#666666]">Detection Rate</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="bg-[#FCE4EC] rounded-lg p-2 text-center">
+                <div className="text-sm font-bold text-[#C62828]">{impactMetrics.ageDistribution.newborn}</div>
+                <div className="text-[9px] text-[#666666]">0-3mo</div>
+              </div>
+              <div className="bg-[#E8F5E9] rounded-lg p-2 text-center">
+                <div className="text-sm font-bold text-[#2E7D32]">{impactMetrics.ageDistribution.infant}</div>
+                <div className="text-[9px] text-[#666666]">3-12mo</div>
+              </div>
+              <div className="bg-[#E3F2FD] rounded-lg p-2 text-center">
+                <div className="text-sm font-bold text-[#1565C0]">{impactMetrics.ageDistribution.toddler}</div>
+                <div className="text-[9px] text-[#666666]">1-3yr</div>
+              </div>
+              <div className="bg-[#F3E5F5] rounded-lg p-2 text-center">
+                <div className="text-sm font-bold text-[#7B1FA2]">{impactMetrics.ageDistribution.preschool}</div>
+                <div className="text-[9px] text-[#666666]">3-5yr</div>
+              </div>
+            </div>
+            {impactMetrics.preemieCount > 0 && (
+              <div className="flex items-center gap-2 text-xs text-[#666666]">
+                <Baby className="w-3.5 h-3.5 text-[#FF9800]" />
+                <span>{impactMetrics.preemieCount} preemie cases · ASQ-3 avg: {impactMetrics.avgASQ3}/60</span>
+              </div>
+            )}
+          </div>
+
           {results.length > 0 ? (
             <>
               <div className="grid grid-cols-4 gap-2">
@@ -114,11 +163,11 @@ export function Dashboard() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-              <Activity className="w-16 h-16 text-[#E0E0E0]" />
-              <h2 className="text-lg font-bold text-[#1A1A1A]">No screenings yet</h2>
-              <p className="text-[#666666] max-w-[280px]">
-                Add a child and complete a screening to see results on your dashboard
+            <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
+              <Activity className="w-12 h-12 text-[#E0E0E0]" />
+              <h2 className="text-base font-bold text-[#1A1A1A]">No local screenings yet</h2>
+              <p className="text-sm text-[#666666] max-w-[280px]">
+                Add a child and complete a screening, or run a demo case
               </p>
             </div>
           )}
