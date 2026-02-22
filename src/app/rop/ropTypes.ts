@@ -65,14 +65,27 @@ export interface EnhancedScreeningResult {
   modelVersion: string;
 }
 
+export type DevelopmentalDomain =
+  | "communication"
+  | "gross_motor"
+  | "fine_motor"
+  | "problem_solving"
+  | "personal_social"
+  | "motor"
+  | "social"
+  | "cognitive"
+  | "comprehensive"
+  | "rop_screening";
+
 export interface PediatricScreeningInput {
   childAgeMonths: number;
   gender: "M" | "F" | "Other";
   parentName: string;
   setting: "home" | "clinic" | "field";
-  domain?: "communication" | "motor" | "social" | "cognitive" | "comprehensive";
+  domain?: DevelopmentalDomain;
   parentReport: string;
   chwObservations?: string;
+  gestationalAgeWeeks?: number;
   multimodal?: {
     imageQuality: number;
     pupilScore: number;

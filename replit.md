@@ -34,6 +34,15 @@ The application is built with React 18 and Vite 6, utilizing Tailwind CSS v4 for
 - **QR Code Functionality**: Generation of patient ID cards and screening result QR codes, and a scanner for data lookup.
 - **Settings**: Configuration options including mock API toggle, data clearing, privacy, PIN lock, and notifications.
 
+## MedGemma Production AI Runtime
+- **MedGemmaContext** (`src/app/contexts/MedGemmaContext.tsx`): Production AI runtime context managing 4-layer pipeline state (Whisper → MedSigLIP → MedGemma → Risk), model loading, inference tracking, and clinical prompt engineering
+- **useMedGemma hook** (`src/app/hooks/useMedGemma.ts`): Easy integration hook exposing analyzeScreening(), analyzeROP(), assessImageQuality(), createClinicalPrompt()
+- **Clinical Prompt Engineering**: ASQ-3 + CDC validated prompts with red flag detection, regression alerts, ICD-10 assignment protocol
+- **6 Developmental Domains**: communication, gross_motor, fine_motor, problem_solving, personal_social, rop_screening - each with domain-specific ICD-10 codes, risk biases, clinical summaries, red flag checks, and recommendations
+- **Reusable Components**: RiskBanner (4-tier clinical display with pulse animation), LiveQualityOverlay (camera quality metrics), AIPipelineAnimation (4-step inference visualization)
+- **ROP Camera Screening**: getUserMedia live video, 4 quality metrics (pupil/focus/lighting/vascular), Zone/Stage/Plus ETROP classification, gestational age metadata
+- **Enhanced Clinical Screening**: Multimodal parent interview with Whisper STT simulation, CHW notes, 6-domain ASQ-3 grid, evidence-graded recommendations
+
 ## Edge AI Architecture
 - **EdgeAiEngine**: Orchestrates on-device inference and summary generation via pluggable LocalModelRuntime interface
 - **MockRuntime**: Demo runtime with simulated 300-600ms latency, produces realistic risk classifications

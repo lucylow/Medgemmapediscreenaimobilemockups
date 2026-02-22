@@ -4,6 +4,7 @@ import { router } from "./routes";
 import { AppProvider } from "./context/AppContext";
 import { OfflineProvider } from "./offline/OfflineContext";
 import { EdgeStatusProvider } from "./edge/EdgeStatusContext";
+import { MedGemmaProvider } from "./contexts/MedGemmaContext";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { PinLock, isPinEnabled, getSavedPin } from "./screens/PinLock";
 
@@ -27,12 +28,14 @@ export default function App() {
 
   return (
     <EdgeStatusProvider>
-      <AppProvider>
-        <OfflineProvider>
-          <OfflineBanner />
-          <RouterProvider router={router} />
-        </OfflineProvider>
-      </AppProvider>
+      <MedGemmaProvider>
+        <AppProvider>
+          <OfflineProvider>
+            <OfflineBanner />
+            <RouterProvider router={router} />
+          </OfflineProvider>
+        </AppProvider>
+      </MedGemmaProvider>
     </EdgeStatusProvider>
   );
 }

@@ -6,12 +6,14 @@ import { ArrowLeft, Eye, Settings, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { hapticImpact, hapticNotification } from "../platform/haptics";
 import type { ImageQualityMetrics, ROPMetadata } from "../rop/ropTypes";
-import { generateMockImageQuality, analyzeROPFrame } from "../rop/ropMockService";
+import { LiveQualityOverlay } from "../components/rop/LiveQualityOverlay";
+import { useMedGemma } from "../hooks/useMedGemma";
 
 type CameraState = "setup" | "live" | "capturing" | "analyzing" | "done";
 
 export function ROPCamera() {
   const navigate = useNavigate();
+  const { analyzeROP, assessImageQuality, state: medGemmaState } = useMedGemma();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraState, setCameraState] = useState<CameraState>("setup");
   const [quality, setQuality] = useState(0);
@@ -35,7 +37,7 @@ export function ROPCamera() {
       hapticImpact("light");
 
       qualityIntervalRef.current = setInterval(() => {
-        const metrics = generateMockImageQuality();
+        const metrics = assessImageQuality();
         setQualityMetrics(metrics);
         setQuality(metrics.overall);
       }, 800);
@@ -44,12 +46,12 @@ export function ROPCamera() {
       setCameraState("live");
 
       qualityIntervalRef.current = setInterval(() => {
-        const metrics = generateMockImageQuality();
+        const metrics = assessImageQuality();
         setQualityMetrics(metrics);
         setQuality(metrics.overall);
       }, 800);
     }
-  }, []);
+  }, [assessImageQuality]);
 
   useEffect(() => {
     return () => {
@@ -90,7 +92,7 @@ export function ROPCamera() {
     };
 
     try {
-      const result = await analyzeROPFrame(metadata);
+      const result = await analyzeROP(metadata);
       hapticNotification("success");
       setCameraState("done");
 
@@ -203,38 +205,13 @@ export function ROPCamera() {
             </div>
 
             <div className="absolute top-20 left-4 right-4 z-10">
-              <div className="bg-black/70 backdrop-blur-sm rounded-2xl px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-white text-lg font-bold">Quality: {quality}%</span>
-                  <span className="text-xs text-white/60">GA: {gestationalAge}w · PMA: {postMenstrualAge}w</span>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  <div>
-                    <p className="text-white/50 text-[10px]">Pupil</p>
-                    <p className="text-white/90 text-xs font-mono">
-                      {(qualityMetrics.pupilDilation * 100).toFixed(0)}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-white/50 text-[10px]">Focus</p>
-                    <p className="text-white/90 text-xs font-mono">
-                      {(qualityMetrics.focusSharpness * 100).toFixed(0)}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-white/50 text-[10px]">Lighting</p>
-                    <p className="text-white/90 text-xs font-mono">
-                      {(qualityMetrics.lightingEvenness * 100).toFixed(0)}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-white/50 text-[10px]">Vascular</p>
-                    <p className="text-white/90 text-xs font-mono">
-                      {(qualityMetrics.vascularContrast * 100).toFixed(0)}%
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <LiveQualityOverlay
+                quality={quality}
+                metrics={qualityMetrics}
+                gestationalAge={gestationalAge}
+                postMenstrualAge={postMenstrualAge}
+                showGuidance={quality < 75}
+              />
             </div>
 
             <div className="absolute top-44 right-6 z-20">

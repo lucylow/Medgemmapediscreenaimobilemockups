@@ -4,6 +4,7 @@ import type {
   ROPMetadata,
   EnhancedScreeningResult,
   PediatricScreeningInput,
+  DevelopmentalDomain,
 } from "./ropTypes";
 
 export function generateMockImageQuality(): ImageQualityMetrics {
@@ -15,6 +16,107 @@ export function generateMockImageQuality(): ImageQualityMetrics {
     overall: Math.round(75 + Math.random() * 20),
   };
 }
+
+interface DomainClinicalProfile {
+  icd10: string[];
+  riskBias: number;
+  summaryTemplate: (age: number, gender: string, percentile: number) => string;
+  domainKeys: string[];
+  redFlagCheck: (report: string, age: number) => boolean;
+  specificRecs: string[];
+}
+
+const DOMAIN_PROFILES: Record<string, DomainClinicalProfile> = {
+  communication: {
+    icd10: ["F80.1", "F80.2", "R62.50"],
+    riskBias: 0.3,
+    summaryTemplate: (age, gender, pct) =>
+      `${age}mo ${gender} with expressive language at ${pct}th percentile. ${pct < 25 ? "Below expected vocabulary range for age. Speech-language evaluation indicated." : "Language development within normal limits for age."}`,
+    domainKeys: ["expressive_language", "receptive_language", "articulation"],
+    redFlagCheck: (report, age) =>
+      (age >= 24 && /no words|few words|not talking/i.test(report)) ||
+      (age >= 12 && /no babbl/i.test(report)),
+    specificRecs: [
+      "Speech-language pathology evaluation",
+      "Implement daily 15-minute language stimulation activities",
+      "Model 2-3 word phrases during daily routines",
+    ],
+  },
+  gross_motor: {
+    icd10: ["F82", "R62.0", "R26.2"],
+    riskBias: 0.2,
+    summaryTemplate: (age, gender, pct) =>
+      `${age}mo ${gender} gross motor development at ${pct}th percentile. ${pct < 25 ? "Delayed motor milestones noted. Physical therapy referral recommended." : "Motor milestones age-appropriate."}`,
+    domainKeys: ["balance", "locomotion", "coordination"],
+    redFlagCheck: (report, age) =>
+      (age >= 18 && /not walking|can't walk/i.test(report)) ||
+      (age >= 9 && /not sitting|can't sit/i.test(report)),
+    specificRecs: [
+      "Pediatric physical therapy evaluation",
+      "Supervised tummy time and floor exploration",
+      "Assess for hypotonia or joint laxity",
+    ],
+  },
+  fine_motor: {
+    icd10: ["F82", "R27.8"],
+    riskBias: 0.15,
+    summaryTemplate: (age, gender, pct) =>
+      `${age}mo ${gender} fine motor skills at ${pct}th percentile. ${pct < 25 ? "Difficulty with age-appropriate grasp and manipulation tasks." : "Fine motor development progressing normally."}`,
+    domainKeys: ["grasp", "manipulation", "hand_eye"],
+    redFlagCheck: (report, age) =>
+      (age >= 12 && /can't grasp|no pincer/i.test(report)) ||
+      (age >= 24 && /can't stack|can't draw/i.test(report)),
+    specificRecs: [
+      "Occupational therapy evaluation for fine motor skills",
+      "Provide age-appropriate manipulative toys",
+      "Practice self-feeding with finger foods",
+    ],
+  },
+  problem_solving: {
+    icd10: ["F88", "R41.840"],
+    riskBias: 0.2,
+    summaryTemplate: (age, gender, pct) =>
+      `${age}mo ${gender} problem-solving/cognitive skills at ${pct}th percentile. ${pct < 25 ? "Below expected cognitive milestones. Comprehensive developmental evaluation recommended." : "Cognitive development within expected range."}`,
+    domainKeys: ["reasoning", "object_permanence", "cause_effect"],
+    redFlagCheck: (report, age) =>
+      (age >= 12 && /not pointing|no interest/i.test(report)) ||
+      /regression|lost skills/i.test(report),
+    specificRecs: [
+      "Developmental pediatrician evaluation",
+      "Structured play activities targeting cause-and-effect understanding",
+      "Assess hearing and vision as contributing factors",
+    ],
+  },
+  personal_social: {
+    icd10: ["F84.0", "F84.9", "R46.0"],
+    riskBias: 0.25,
+    summaryTemplate: (age, gender, pct) =>
+      `${age}mo ${gender} personal-social development at ${pct}th percentile. ${pct < 25 ? "Limited social reciprocity and peer engagement. Autism screening (M-CHAT-R/F) recommended." : "Social engagement and self-help skills age-appropriate."}`,
+    domainKeys: ["social_reciprocity", "self_help", "emotional_regulation"],
+    redFlagCheck: (report, age) =>
+      /no eye contact|hand.?flap|spinning|regression/i.test(report) ||
+      (age >= 18 && /no pointing|not responding.*name/i.test(report)),
+    specificRecs: [
+      "Administer M-CHAT-R/F autism screening",
+      "Pediatric developmental specialist referral",
+      "Structured social interaction activities",
+      "Parent training in responsive interaction strategies",
+    ],
+  },
+  rop_screening: {
+    icd10: ["H35.09", "H35.10"],
+    riskBias: 0.4,
+    summaryTemplate: (age, gender, pct) =>
+      `Retinal screening for ${age}mo preterm infant. ${pct < 30 ? "Abnormal retinal findings detected. Ophthalmology referral required." : "Retinal vasculature developing normally."}`,
+    domainKeys: ["retinal_vascular", "optic_disc", "peripheral_retina"],
+    redFlagCheck: () => false,
+    specificRecs: [
+      "Pediatric ophthalmology referral within 48 hours",
+      "Weekly ROP monitoring per AAP guidelines",
+      "Document findings in NICU chart",
+    ],
+  },
+};
 
 export async function analyzeROPFrame(
   metadata: ROPMetadata
@@ -102,6 +204,14 @@ export async function analyzeROPFrame(
   };
 }
 
+function resolveDomain(domain?: DevelopmentalDomain): string {
+  if (!domain || domain === "comprehensive") return "comprehensive";
+  if (domain === "motor") return "gross_motor";
+  if (domain === "social") return "personal_social";
+  if (domain === "cognitive") return "problem_solving";
+  return domain;
+}
+
 export async function analyzeScreeningEnhanced(
   input: PediatricScreeningInput
 ): Promise<EnhancedScreeningResult> {
@@ -109,22 +219,37 @@ export async function analyzeScreeningEnhanced(
   await new Promise((res) => setTimeout(res, 800 + Math.random() * 1200));
 
   const ageMonths = input.childAgeMonths;
-  const hasRedFlags = input.parentReport.toLowerCase().includes("regression") ||
-    input.parentReport.toLowerCase().includes("no words") ||
-    input.parentReport.toLowerCase().includes("not walking");
+  const genderLabel = input.gender === "M" ? "male" : input.gender === "F" ? "female" : "child";
+  const resolvedDomain = resolveDomain(input.domain);
+  const profile = DOMAIN_PROFILES[resolvedDomain] ?? DOMAIN_PROFILES.communication;
 
-  const riskRoll = hasRedFlags ? 0.9 : Math.random();
-  const risk_level = riskRoll > 0.7 ? "referral" as const
-    : riskRoll > 0.4 ? "urgent" as const
-    : riskRoll > 0.15 ? "monitor" as const
-    : "on_track" as const;
+  const hasRedFlags = profile.redFlagCheck(input.parentReport, ageMonths) ||
+    /regression|lost skills/i.test(input.parentReport);
+
+  const riskBias = profile.riskBias + (hasRedFlags ? 0.5 : 0);
+  const riskRoll = Math.random() + riskBias;
+  const risk_level: EnhancedScreeningResult["risk_level"] =
+    riskRoll > 1.1 ? "referral"
+    : riskRoll > 0.7 ? "urgent"
+    : riskRoll > 0.35 ? "monitor"
+    : "on_track";
 
   const confidence = parseFloat((0.87 + Math.random() * 0.11).toFixed(2));
 
-  const commScore = Math.round(8 + Math.random() * 12);
-  const motorScore = Math.round(10 + Math.random() * 10);
-  const socialScore = Math.round(7 + Math.random() * 13);
-  const rawScore = commScore + motorScore + socialScore;
+  const domainScores: Record<string, number> = {};
+  const domainKeys = resolvedDomain === "comprehensive"
+    ? ["communication", "gross_motor", "fine_motor", "problem_solving", "personal_social"]
+    : profile.domainKeys;
+
+  let totalScore = 0;
+  for (const key of domainKeys) {
+    const base = risk_level === "referral" ? 4 : risk_level === "urgent" ? 7 : risk_level === "monitor" ? 10 : 13;
+    const score = Math.min(20, Math.max(2, Math.round(base + Math.random() * 7)));
+    domainScores[key] = score;
+    totalScore += score;
+  }
+
+  const rawScore = Math.min(60, totalScore);
   const percentile = risk_level === "referral"
     ? Math.round(5 + Math.random() * 15)
     : risk_level === "urgent"
@@ -133,67 +258,92 @@ export async function analyzeScreeningEnhanced(
     ? Math.round(30 + Math.random() * 30)
     : Math.round(60 + Math.random() * 35);
 
-  const icd10Map: Record<string, string[]> = {
-    referral: ["F80.1", "R62.50", "F84.0"],
-    urgent: ["F80.1", "R62.50"],
-    monitor: ["R62.0"],
-    on_track: [],
-  };
+  const icd10_codes = risk_level === "on_track" ? [] :
+    risk_level === "monitor" ? [profile.icd10[0]] :
+    profile.icd10.slice(0, risk_level === "referral" ? 3 : 2);
 
-  const key_findings = [
-    `Expressive language ${ageMonths >= 24 ? (percentile < 30 ? "below expected 50+ words" : "developing appropriately") : "age-appropriate for milestones"}`,
-    `Receptive language ${ageMonths >= 18 ? "follows 2-step directions" : "responds to simple commands"}`,
-    `Motor milestones ${ageMonths >= 12 ? (risk_level === "referral" ? "delayed - not walking independently" : "within normal limits") : "emerging appropriately"}`,
-    `Social engagement ${input.domain === "social" ? "limited peer interaction noted" : "typical reciprocal interaction observed"}`,
-    `No regression of established skills observed`,
+  const key_findings: string[] = [];
+  if (resolvedDomain === "comprehensive") {
+    key_findings.push(
+      `Multi-domain screening for ${ageMonths}mo ${genderLabel}`,
+      `Communication: ${domainScores.communication ?? "N/A"}/20 ${(domainScores.communication ?? 20) < 10 ? "(below cutoff)" : ""}`,
+      `Gross Motor: ${domainScores.gross_motor ?? "N/A"}/20 ${(domainScores.gross_motor ?? 20) < 10 ? "(below cutoff)" : ""}`,
+      `Fine Motor: ${domainScores.fine_motor ?? "N/A"}/20`,
+      `Problem Solving: ${domainScores.problem_solving ?? "N/A"}/20`,
+      `Personal-Social: ${domainScores.personal_social ?? "N/A"}/20`,
+    );
+  } else {
+    key_findings.push(
+      `${resolvedDomain.replace("_", " ")} domain screening for ${ageMonths}mo ${genderLabel}`,
+    );
+    for (const key of domainKeys) {
+      key_findings.push(
+        `${key.replace("_", " ")}: ${domainScores[key]}/20 ${domainScores[key] < 10 ? "(below cutoff)" : "(within range)"}`,
+      );
+    }
+  }
+
+  key_findings.push(
     `ASQ-3 equivalent: ${percentile}th percentile (raw ${rawScore}/60)`,
-    hasRedFlags ? "RED FLAG: Potential regression or significant delay identified" : "No critical red flags identified",
-  ];
+    hasRedFlags ? "RED FLAG: Clinical concern identified from parent report" : "No critical red flags from parent observations",
+    `CDC milestone tolerance: ±2 months applied`,
+    risk_level === "referral" ? "IMMEDIATE REFERRAL: Multiple indicators below threshold" : "",
+  );
 
-  const clinical_summary = `MedGemma-2B-IT analysis indicates ${risk_level.replace("_", " ")} risk profile for ${ageMonths}-month-old ${input.gender === "M" ? "male" : input.gender === "F" ? "female" : "child"}. ASQ-3 equivalent score: ${rawScore}/60 (${percentile}th percentile). ${
-    risk_level === "referral"
-      ? "Immediate developmental pediatrician evaluation recommended. Multiple domains below cutoff threshold."
-      : risk_level === "urgent"
-      ? "Urgent follow-up recommended. One or more domains approaching cutoff threshold."
-      : "Routine monitoring recommended with rescreening in 3 months."
-  } Confidence: ${(confidence * 100).toFixed(0)}%.`;
+  const clinical_summary = resolvedDomain === "comprehensive"
+    ? `MedGemma-2B-IT comprehensive analysis: ${risk_level.replace("_", " ")} for ${ageMonths}mo ${genderLabel}. ASQ-3 equivalent: ${rawScore}/60 (${percentile}th percentile). ${
+        risk_level === "referral"
+          ? "Multiple domains below cutoff. Immediate comprehensive developmental evaluation recommended."
+          : risk_level === "urgent"
+          ? "One or more domains approaching cutoff. Urgent follow-up recommended."
+          : risk_level === "monitor"
+          ? "Borderline scores in select domains. Rescreening in 3 months."
+          : "All domains within normal limits. Routine monitoring."
+      } Confidence: ${(confidence * 100).toFixed(0)}%.`
+    : `${profile.summaryTemplate(ageMonths, genderLabel, percentile)} ASQ-3 equivalent: ${rawScore}/60 (${percentile}th percentile). Confidence: ${(confidence * 100).toFixed(0)}%.`;
 
-  const recommendations: EnhancedScreeningResult["recommendations"] = [
-    ...(risk_level === "referral"
-      ? [{
-          priority: "immediate" as const,
-          action: "Refer to developmental pediatrician for comprehensive evaluation",
-          timeline: "immediate" as const,
-          evidence_level: "A" as const,
-        }]
-      : []),
-    {
-      priority: risk_level === "referral" ? "immediate" as const : "high" as const,
-      action: "Complete formal ASQ-3 screening instrument",
-      timeline: risk_level === "referral" ? "immediate" as const : "7d" as const,
-      evidence_level: "A" as const,
-    },
-    ...(commScore < 12
-      ? [{
-          priority: "high" as const,
-          action: `Speech-language therapy evaluation${ageMonths >= 24 ? " - <50 words at 24mo indicates expressive delay" : ""}`,
-          timeline: "14d" as const,
-          evidence_level: "A" as const,
-        }]
-      : []),
-    {
-      priority: "medium" as const,
-      action: `Rescreen in ${risk_level === "on_track" ? "6" : "3"} months using standardized instrument`,
-      timeline: "28d" as const,
-      evidence_level: "B" as const,
-    },
-    {
-      priority: "low" as const,
-      action: "Provide CDC milestone checklist and developmental stimulation activities",
-      timeline: "7d" as const,
-      evidence_level: "C" as const,
-    },
-  ];
+  const recommendations: EnhancedScreeningResult["recommendations"] = [];
+
+  if (risk_level === "referral") {
+    recommendations.push({
+      priority: "immediate",
+      action: "Refer to developmental pediatrician for comprehensive evaluation",
+      timeline: "immediate",
+      evidence_level: "A",
+    });
+  }
+
+  recommendations.push({
+    priority: risk_level === "referral" ? "immediate" : "high",
+    action: "Complete formal ASQ-3 screening instrument to confirm findings",
+    timeline: risk_level === "referral" ? "immediate" : "7d",
+    evidence_level: "A",
+  });
+
+  if (risk_level !== "on_track") {
+    for (const rec of profile.specificRecs.slice(0, 2)) {
+      recommendations.push({
+        priority: risk_level === "referral" ? "high" : "medium",
+        action: rec,
+        timeline: "14d",
+        evidence_level: "A",
+      });
+    }
+  }
+
+  recommendations.push({
+    priority: "medium",
+    action: `Rescreen in ${risk_level === "on_track" ? "6" : "3"} months using standardized instrument`,
+    timeline: "28d",
+    evidence_level: "B",
+  });
+
+  recommendations.push({
+    priority: "low",
+    action: "Provide CDC milestone checklist and developmental stimulation activities for home",
+    timeline: "7d",
+    evidence_level: "C",
+  });
 
   return {
     risk_level,
@@ -202,14 +352,10 @@ export async function analyzeScreeningEnhanced(
       raw_score: rawScore,
       percentile,
       cutoff_flag: risk_level !== "on_track",
-      domain_breakdown: {
-        communication: commScore,
-        motor: motorScore,
-        social: socialScore,
-      },
+      domain_breakdown: domainScores,
     },
-    icd10_codes: icd10Map[risk_level] ?? [],
-    key_findings,
+    icd10_codes,
+    key_findings: key_findings.filter(Boolean),
     clinical_summary,
     recommendations,
     latencyMs: Math.round(performance.now() - start),

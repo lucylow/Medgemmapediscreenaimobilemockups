@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { MobileContainer } from "../components/MobileContainer";
 import { AIPipelineAnimation } from "../components/AIPipelineAnimation";
+import { RiskBanner } from "../components/ai/RiskBanner";
 import {
   ArrowLeft, CheckCircle2, AlertTriangle, AlertCircle, XCircle,
   ChevronDown, ChevronUp, FileText, Share2, Shield, Brain,
@@ -10,13 +11,6 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import type { EnhancedScreeningResult, PediatricScreeningInput } from "../rop/ropTypes";
 import { ROP_RISK_CONFIG } from "../rop/ropTypes";
-
-const riskIcons = {
-  on_track: CheckCircle2,
-  monitor: AlertCircle,
-  urgent: AlertTriangle,
-  referral: XCircle,
-};
 
 const priorityColors = {
   immediate: { bg: "bg-red-100", text: "text-red-800", border: "#d93025" },
@@ -56,8 +50,6 @@ export function EnhancedResultsScreen() {
     );
   }
 
-  const config = ROP_RISK_CONFIG[result.risk_level];
-  const RiskIcon = riskIcons[result.risk_level];
   const asq3 = result.asq3_equivalent;
 
   return (
@@ -74,32 +66,11 @@ export function EnhancedResultsScreen() {
         </div>
 
         <div className="px-4 space-y-4">
-          <motion.div
-            className="rounded-3xl p-6 relative overflow-hidden"
-            style={{ backgroundColor: config.color }}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-2xl">
-                <RiskIcon className="w-10 h-10" style={{ color: config.textColor }} />
-              </div>
-              <div className="flex-1">
-                <p className="text-2xl font-black" style={{ color: config.textColor }}>
-                  {config.label}
-                </p>
-                <p className="text-lg font-semibold mt-0.5" style={{ color: config.textColor }}>
-                  ASQ-3: {asq3.percentile}th percentile
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="w-2.5 h-2.5 bg-white/60 rounded-full" />
-                  <p className="text-sm" style={{ color: config.textColor }}>
-                    Confidence: {(result.confidence * 100).toFixed(0)}%
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          <RiskBanner
+            riskLevel={result.risk_level}
+            confidence={result.confidence}
+            subtitle={`ASQ-3: ${asq3.percentile}th percentile`}
+          />
 
           <div className="bg-white border-2 border-gray-200 rounded-2xl p-5">
             <h3 className="font-bold text-[#1A1A1A] text-sm flex items-center gap-2 mb-3">
@@ -112,7 +83,7 @@ export function EnhancedResultsScreen() {
                 <p className="text-xs text-[#666]">Raw Score /60</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-3 text-center">
-                <p className="text-2xl font-black" style={{ color: config.textColor }}>
+                <p className="text-2xl font-black" style={{ color: ROP_RISK_CONFIG[result.risk_level].textColor }}>
                   {asq3.percentile}<span className="text-sm">th</span>
                 </p>
                 <p className="text-xs text-[#666]">Percentile</p>

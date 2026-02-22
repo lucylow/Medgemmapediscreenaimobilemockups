@@ -9,16 +9,18 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { hapticImpact, hapticNotification } from "../platform/haptics";
 import type { PediatricScreeningInput, EnhancedScreeningResult } from "../rop/ropTypes";
-import { analyzeScreeningEnhanced, mockTranscribeSpeech } from "../rop/ropMockService";
+import { mockTranscribeSpeech } from "../rop/ropMockService";
+import { useMedGemma } from "../hooks/useMedGemma";
 
 type ScreeningStep = "input" | "processing" | "done";
 
 const DOMAINS = [
   { value: "comprehensive", label: "Comprehensive", icon: "🔬" },
   { value: "communication", label: "Communication", icon: "💬" },
-  { value: "motor", label: "Motor", icon: "🏃" },
-  { value: "social", label: "Social", icon: "👫" },
-  { value: "cognitive", label: "Cognitive", icon: "🧩" },
+  { value: "gross_motor", label: "Gross Motor", icon: "🏃" },
+  { value: "fine_motor", label: "Fine Motor", icon: "✋" },
+  { value: "problem_solving", label: "Problem Solving", icon: "🧩" },
+  { value: "personal_social", label: "Personal-Social", icon: "👫" },
 ];
 
 const SETTINGS = [
@@ -29,6 +31,7 @@ const SETTINGS = [
 
 export function ScreeningInputScreen() {
   const navigate = useNavigate();
+  const { analyzeScreening, state: medGemmaState } = useMedGemma();
   const [step, setStep] = useState<ScreeningStep>("input");
   const [pipelineProgress, setPipelineProgress] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -76,7 +79,7 @@ export function ScreeningInputScreen() {
     }, 120);
 
     try {
-      const res = await analyzeScreeningEnhanced(formData);
+      const res = await analyzeScreening(formData);
       clearInterval(progressInterval);
       setPipelineProgress(1);
       setResult(res);
