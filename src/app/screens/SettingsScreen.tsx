@@ -195,6 +195,36 @@ export function SettingsScreen() {
           )}
 
           <div className="space-y-3">
+            <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Clinical Screening</h2>
+            <button
+              onClick={() => navigate("/screening-input")}
+              className="w-full bg-white border-2 border-gray-100 rounded-2xl p-4 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <Cpu className="w-5 h-5 text-[#4285F4]" />
+                <div className="text-left">
+                  <p className="font-semibold text-[#1A1A1A]">MedGemma Clinical Screening</p>
+                  <p className="text-xs text-[#666666]">4-layer AI pipeline · ASQ-3 · ICD-10 · Speech-to-text</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#999999]" />
+            </button>
+            <button
+              onClick={() => navigate("/rop-camera")}
+              className="w-full bg-white border-2 border-gray-100 rounded-2xl p-4 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <Cpu className="w-5 h-5 text-[#EA4335]" />
+                <div className="text-left">
+                  <p className="font-semibold text-[#1A1A1A]">ROP Camera Screening</p>
+                  <p className="text-xs text-[#666666]">Live retinal imaging · Zone/Stage/Plus · ETROP</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#999999]" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
             <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Edge AI</h2>
             <button
               onClick={() => navigate("/edge-diagnostics")}

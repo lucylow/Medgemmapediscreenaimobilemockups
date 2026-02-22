@@ -31,6 +31,11 @@ import { MRIScanHomeScreen } from "./screens/MRIScanHomeScreen";
 import { MRIImportScreen } from "./screens/MRIImportScreen";
 import { MRIMultiplanarScreen } from "./screens/MRIMultiplanarScreen";
 import { MRISerialTrackingScreen } from "./screens/MRISerialTrackingScreen";
+import { CameraScreening } from "./screens/CameraScreening";
+import { ROPCamera } from "./screens/ROPCamera";
+import { ROPResultsScreen } from "./screens/ROPResultsScreen";
+import { ScreeningInputScreen } from "./screens/ScreeningInputScreen";
+import { EnhancedResultsScreen } from "./screens/EnhancedResultsScreen";
 
 export const router = createBrowserRouter([
   {
@@ -160,5 +165,25 @@ export const router = createBrowserRouter([
   {
     path: "/mri-serial",
     Component: MRISerialTrackingScreen,
+  },
+  {
+    path: "/camera-screening",
+    Component: CameraScreening,
+  },
+  {
+    path: "/rop-camera",
+    Component: ROPCamera,
+  },
+  {
+    path: "/rop-results",
+    Component: ROPResultsScreen,
+  },
+  {
+    path: "/screening-input",
+    Component: ScreeningInputScreen,
+  },
+  {
+    path: "/screening-results-enhanced",
+    Component: EnhancedResultsScreen,
   },
 ]);
