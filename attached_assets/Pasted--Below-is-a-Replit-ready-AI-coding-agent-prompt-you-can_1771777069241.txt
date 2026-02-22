@@ -1,0 +1,774 @@
+. Below is a Replit-ready “AI coding agent” prompt you can paste into instructions.md (or the Replit Ghostwriter / Codeium / Cursor system prompt) so it generates React Native code expanding your existing repo to support CT DICOM → EdgeAiEngine → MedGemma 3D inference and visualizationadapt names, but this is written to plug into Medgemmapediscreenaimobilemockups and Expo SDK 51 with VisionCamera, react-native-dicom, and a CT EdgeAiEngine pipeline.react-native-vision-camera+2
+
+Replit System Prompt for PediScreen AI – CT Scan Mobile
+You are an expert React Native + Expo + TypeScript engineer working on the GitHub repo:
+https://github.com/lucylow/Medgemmapediscreenaimobilemockups.[github]​
+Your goal:
+Add a complete “CT Scan Mobile” feature to PediScreen AI, implementing a DICOM→NIfTI→3D tensor pipeline that runs a quantized MedGemma-2B-IT-Q4 120MB model locally, using an EdgeAiEngine abstraction and React Native UI (Expo SDK 51, VisionCamera). The code must be production-quality, strongly typed, and consistent with the existing PediScreen AI UX.
+High-Level Requirements
+Implement a CT feature that does:
+CT import (DICOM / NIfTI) from device storage.
+3D volume preprocessing:
+Stack DICOM slices (512×512×N).
+Normalize Hounsfield Units from -1000..+3000 to 0..1.
+Convert to patches (e.g. 64×64×64) on-device.
+Edge AI inference (MedGemma-2B-IT-Q4 120MB model) via an EdgeAiEngine:
+Approximate performance target: 2.1s end-to-end per volume.
+Peak memory budget: ~450MB (120MB model + DICOM cache + 3D patches).
+Visualization:
+Multiplanar recon: axial / coronal / sagittal.
+Volume “slice scrubber” with contrast/brightness adjustment.
+Simple 3D overview (pseudo-volume render / maximum intensity projection).
+Clinical integration:
+Compute risk tier (e.g., 4-tier: On Track / Monitor / Refer / Critical).
+Summarize findings for key pediatric CT use cases:
+Preemie IVH (CT head).
+Pediatric fractures.
+Abdominal emergencies (appendicitis / NEC).
+Oncology staging (neuroblastoma / Wilms / lymphoma).
+Export a FHIR R4 Bundle containing CT findings and references to 3D meshes/serial studies.
+UX:
+Integrated into existing PediScreen navigation.
+Accessible (WCAG 2.2 AA: focus, labels, contrast).
+Works fully offline; assumes MedGemma weights are embedded or locally downloaded once.
+Use libraries as appropriate:
+Expo SDK 51 (managed or CNG).
+react-native-vision-camera for camera & possible live CT capture UI scaffolding (not real CT feed).[github]​
+expo-document-picker for CT DICOM/NIfTI file selection.[blog.logrocket]​
+react-native-dicom-viewer or similar for reading DICOM when possible.[jsdelivr]​
+A simple native module or JS-based parser for DICOM stacks, if library support is limited.
+A small EdgeAiEngine TypeScript wrapper around platform-native TFLite / ONNX runtime.
+You do not have to implement native C++ kernels; stub where necessary but keep interfaces realistic.
+
+Architecture & Files to Add / Modify
+Update the project to the following structure (respecting existing folders):
+text
+src/
+  navigation/
+    AppNavigator.tsx          # Add CTScan stack/screens
+  screens/
+    CTScan/
+      CTScanHomeScreen.tsx    # Landing & “New CT Analysis”
+      CTImportScreen.tsx      # DICOM/NIfTI import
+      CT3DViewerScreen.tsx    # Multiplanar/volume viewer
+      CTInferenceScreen.tsx   # Progress + risk result
+      CTSerialCompareScreen.tsx # Serial CT comparison
+  components/
+    ct/
+      CTFilePicker.tsx
+      CTSeriesList.tsx
+      CTMultiplanarViewer.tsx
+      CTVolumePreview.tsx
+      CTRiskBadge.tsx
+      CTUseCaseChips.tsx
+  services/
+    ct/
+      dicomLoader.ts
+      ctPreprocess.ts
+      ctPatchExtractor.ts
+      edgeAiEngine.ts
+      fhirExporter.ts
+      ctUseCaseHeuristics.ts
+  types/
+    ct.ts
+  state/
+    CTScanContext.tsx
+
+You are allowed to adjust names to align with the repo’s existing conventions, but keep the hierarchy and responsibilities.
+
+Data Contracts
+Create clear TypeScript models:
+ts
+// src/types/ct.ts
+export type CTModality = 'CT_HEAD' | 'CT_ABDOMEN' | 'CT_CHEST' | 'CT_MS' | 'CBCT_DENTAL';
+
+export interface CTVolumeMeta {
+  id: string;
+  seriesInstanceUID: string;
+  studyInstanceUID: string;
+  modality: CTModality;
+  sliceCount: number;
+  rows: number;    // expected 512
+  cols: number;    // expected 512
+  voxelSpacing: [number, number, number]; // mm: [dx, dy, dz]
+  hounsfieldRange: [number, number];      // [-1000, 3000]
+  acquisitionDateTime?: string;
+  patientAgeMonths?: number;
+  anonymized: boolean;
+  sourcePath: string; // local URI
+}
+
+export interface CTVolume {
+  meta: CTVolumeMeta;
+  // 3D tensor: Float32Array length rows * cols * sliceCount (normalized 0..1)
+  data: Float32Array;
+}
+
+export interface CTDomainScores {
+  hemorrhageRisk: number;   // 0..1
+  fractureRisk: number;     // 0..1
+  necRisk: number;          // 0..1
+  tumorBurden: number;      // 0..1
+}
+
+export type CTRiskTier = 'ON_TRACK' | 'MONITOR' | 'REFER' | 'CRITICAL';
+
+export interface CTInferenceResult {
+  volumeId: string;
+  domainScores: CTDomainScores;
+  riskTier: CTRiskTier;
+  keyFindings: string[];
+  clinicalSummary: string;
+  latencyMs: number;
+  modelVersion: string; // e.g. 'MedGemma-2B-IT-Q4'
+  segmentationMasks?: {
+    hemorrhageMask?: Uint8Array; // optional 3D mask, same layout as data
+    tumorMask?: Uint8Array;
+  };
+}
+
+export interface CTSerialStudy {
+  patientId: string;
+  volumes: CTVolumeMeta[];
+}
+
+
+CT Pipeline Services
+1. DICOM/NIfTI Loader
+Create src/services/ct/dicomLoader.ts:
+ts
+import * as DocumentPicker from 'expo-document-picker';
+import { CTVolume, CTVolumeMeta } from '../../types/ct';
+// Import DICOM parsing library or stub
+// e.g. react-native-dicom-viewer or a light DICOM parser[web:342]
+
+export async function pickCTFile(): Promise<DocumentPicker.DocumentPickerAsset | null> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: [
+      'application/dicom',           // .dcm
+      'application/dicom+zip',
+      'application/x-nifti',         // .nii, .nii.gz
+      'application/octet-stream',    // fall back
+    ],
+    copyToCacheDirectory: true,
+    multiple: false,
+  });
+
+  if (result.canceled || !result.assets?.length) return null;
+  return result.assets[0];
+}
+
+/**
+ * Load a DICOM or NIfTI series into a normalized CTVolume,
+ * stacking slices and normalizing Hounsfield Units (-1000..+3000 → 0..1).
+ */
+export async function loadCTVolumeFromFile(
+  asset: DocumentPicker.DocumentPickerAsset
+): Promise<CTVolume> {
+  // Implementation detail:
+  // - If DICOM: parse series, sort slices by ImagePositionPatient/InstanceNumber,
+  //   read PixelData and RescaleSlope/RescaleIntercept to compute HU.
+  // - If NIfTI: use a JS nifti reader (if available) and extract info.
+  // For Replit / mock: create a clear, well-documented stub and TODOs.
+
+  // Pseudocode sketch:
+  // const buffer = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+  // const dicomStack = await parseDicomSeries(buffer);
+  // const { rows, cols, numSlices, voxelSpacing, huVolume } = dicomStack;
+  //
+  // Normalize HU to 0..1 in-place.
+  // const data = new Float32Array(rows * cols * numSlices);
+  // for (let i = 0; i < huVolume.length; i++) {
+  //   const hu = Math.max(-1000, Math.min(3000, huVolume[i]));
+  //   data[i] = (hu + 1000) / 4000;
+  // }
+
+  // For now, implement a simple mocked volume but keep the API and comments precise.
+  const rows = 64;
+  const cols = 64;
+  const sliceCount = 64;
+  const data = new Float32Array(rows * cols * sliceCount).map((_, i) => Math.random());
+
+  const meta: CTVolumeMeta = {
+    id: `ct-${Date.now()}`,
+    seriesInstanceUID: `series-${Date.now()}`,
+    studyInstanceUID: `study-${Date.now()}`,
+    modality: 'CT_HEAD',
+    sliceCount,
+    rows,
+    cols,
+    voxelSpacing: [0.5, 0.5, 1.0],
+    hounsfieldRange: [-1000, 3000],
+    anonymized: true,
+    sourcePath: asset.uri,
+  };
+
+  return { meta, data };
+}
+
+2. Preprocess & Patch Extraction
+Create src/services/ct/ctPreprocess.ts:
+ts
+import { CTVolume } from '../../types/ct';
+
+export interface CTPreprocessOptions {
+  targetPatchSize?: [number, number, number]; // default [64,64,64]
+  clipHU?: [number, number];                  // [-1000, 3000]
+}
+
+/**
+ * Given a full CTVolume, prepare 3D patches for the MedGemma model.
+ */
+export function extractPatches3D(
+  volume: CTVolume,
+  options: CTPreprocessOptions = {}
+): Float32Array[] {
+  const { meta, data } = volume;
+  const [rows, cols, slices] = [meta.rows, meta.cols, meta.sliceCount];
+  const [px, py, pz] = options.targetPatchSize ?? [64, 64, 64];
+
+  const patches: Float32Array[] = [];
+
+  // Sliding window (non-overlapping or small overlap for hackathon)
+  for (let z = 0; z + pz <= slices; z += pz) {
+    const patch = new Float32Array(px * py * pz);
+
+    for (let dz = 0; dz < pz; dz++) {
+      for (let y = 0; y < py; y++) {
+        for (let x = 0; x < px; x++) {
+          const srcIndex =
+            (z + dz) * rows * cols +
+            y * cols +
+            x;
+          const dstIndex = dz * px * py + y * px + x;
+          patch[dstIndex] = data[srcIndex];
+        }
+      }
+    }
+
+    patches.push(patch);
+  }
+
+  return patches;
+}
+
+3. EdgeAiEngine Wrapper
+Create src/services/ct/edgeAiEngine.ts:
+ts
+import { CTVolume, CTInferenceResult, CTDomainScores } from '../../types/ct';
+import { extractPatches3D } from './ctPreprocess';
+
+// In a real app this would bridge to TFLite / ONNX runtime; here we keep a typed abstraction.
+class EdgeAiEngine {
+  private initialized = false;
+  private modelPath = 'medgemma-2b-it-q4.tflite';
+  private modelSizeMB = 120;
+
+  async init(): Promise<void> {
+    if (this.initialized) return;
+    // TODO: load TFLite model from local bundle or FileSystem
+    // e.g., await TFLite.loadModelAsync(this.modelPath);
+    this.initialized = true;
+  }
+
+  /**
+   * Run 3D inference on a CT volume using patch-wise MedGemma model.
+   * Aims for ~2.1s latency on modern mobile hardware.
+   */
+  async runInference3D(volume: CTVolume): Promise<CTInferenceResult> {
+    if (!this.initialized) {
+      await this.init();
+    }
+
+    const start = Date.now();
+    const patches = extractPatches3D(volume);
+
+    // TODO: send patches to native inference; aggregate logits.
+    // For hack prototype: generate heuristic scores but keep interfaces real.
+    const domainScores: CTDomainScores = {
+      hemorrhageRisk: Math.random(),
+      fractureRisk: Math.random(),
+      necRisk: Math.random(),
+      tumorBurden: Math.random(),
+    };
+
+    const riskTier = this.inferRiskTier(domainScores);
+
+    const keyFindings: string[] = this.generateKeyFindings(volume, domainScores, riskTier);
+    const clinicalSummary = this.generateSummary(volume, domainScores, riskTier);
+
+    const latencyMs = Date.now() - start;
+
+    return {
+      volumeId: volume.meta.id,
+      domainScores,
+      riskTier,
+      keyFindings,
+      clinicalSummary,
+      latencyMs,
+      modelVersion: 'MedGemma-2B-IT-Q4',
+    };
+  }
+
+  private inferRiskTier(scores: CTDomainScores) {
+    const maxScore = Math.max(
+      scores.hemorrhageRisk,
+      scores.fractureRisk,
+      scores.necRisk,
+      scores.tumorBurden
+    );
+    if (maxScore < 0.25) return 'ON_TRACK';
+    if (maxScore < 0.5) return 'MONITOR';
+    if (maxScore < 0.75) return 'REFER';
+    return 'CRITICAL';
+  }
+
+  private generateKeyFindings(volume: CTVolume, scores: CTDomainScores, tier: any): string[] {
+    const findings: string[] = [];
+    if (scores.hemorrhageRisk > 0.6 && volume.meta.modality === 'CT_HEAD') {
+      findings.push('Increased risk of intracranial hemorrhage; correlate with IVH grading.');
+    }
+    if (scores.fractureRisk > 0.6) {
+      findings.push('High probability of cortical disruption; consider orthopedic review.');
+    }
+    if (scores.necRisk > 0.6) {
+      findings.push('Pattern suspicious for NEC; assess bowel wall and portal venous gas.');
+    }
+    if (scores.tumorBurden > 0.6) {
+      findings.push('Possible solid mass or nodal disease; consider oncology staging CT.');
+    }
+    if (!findings.length) {
+      findings.push('No high-risk CT features detected; routine follow-up as clinically indicated.');
+    }
+    return findings;
+  }
+
+  private generateSummary(volume: CTVolume, scores: CTDomainScores, tier: any): string {
+    return `Automated CT analysis for pediatric patient (modality: ${volume.meta.modality}) ` +
+      `suggests overall ${tier.toLowerCase()} risk. ` +
+      `Hemorrhage: ${(scores.hemorrhageRisk * 100).toFixed(0)}%, ` +
+      `fracture: ${(scores.fractureRisk * 100).toFixed(0)}%, ` +
+      `NEC: ${(scores.necRisk * 100).toFixed(0)}%, ` +
+      `tumor burden: ${(scores.tumorBurden * 100).toFixed(0)}%. ` +
+      `Use this as decision support only; requires pediatric radiologist review.`;
+  }
+}
+
+export const edgeAiEngine = new EdgeAiEngine();
+
+4. FHIR Export
+Create src/services/ct/fhirExporter.ts:
+ts
+import { CTVolumeMeta, CTInferenceResult } from '../../types/ct';
+
+/**
+ * Build a FHIR R4 Bundle with CT findings and references to volume/meshes.
+ * For hackathon, return JSON string + object; actual upload can be added later.
+ */
+export function buildCTFhirBundle(
+  meta: CTVolumeMeta,
+  result: CTInferenceResult
+): { bundle: any; json: string } {
+  const now = new Date().toISOString();
+
+  const observationId = `ct-observation-${meta.id}`;
+  const riskCode = result.riskTier === 'CRITICAL'
+    ? 'CRIT'
+    : result.riskTier === 'REFER'
+      ? 'HIGH'
+      : result.riskTier === 'MONITOR'
+        ? 'MOD'
+        : 'LOW';
+
+  const bundle = {
+    resourceType: 'Bundle',
+    type: 'collection',
+    timestamp: now,
+    entry: [
+      {
+        fullUrl: `urn:uuid:${observationId}`,
+        resource: {
+          resourceType: 'Observation',
+          id: observationId,
+          status: 'final',
+          category: [
+            {
+              coding: [
+                {
+                  system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                  code: 'imaging',
+                  display: 'Imaging',
+                },
+              ],
+            },
+          ],
+          code: {
+            coding: [
+              {
+                system: 'http://loinc.org',
+                code: '18748-4',
+                display: 'CT study',
+              },
+            ],
+            text: 'Pediatric CT screening (PediScreen AI)',
+          },
+          effectiveDateTime: now,
+          valueCodeableConcept: {
+            text: result.clinicalSummary,
+          },
+          interpretation: [
+            {
+              coding: [
+                {
+                  system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
+                  code: riskCode,
+                },
+              ],
+              text: result.riskTier,
+            },
+          ],
+          note: result.keyFindings.map((f) => ({ text: f })),
+        },
+      },
+    ],
+  };
+
+  return { bundle, json: JSON.stringify(bundle, null, 2) };
+}
+
+
+Screens & UI
+CTScanHomeScreen
+Create src/screens/CTScan/CTScanHomeScreen.tsx:
+tsx
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+
+export const CTScanHomeScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+
+  return (
+    <ScrollView className="flex-1 bg-[#f8f9fa]">
+      <View className="px-4 pt-6 pb-4">
+        <Text className="text-3xl font-bold text-[#202124]">
+          CT Scan • PediScreen AI
+        </Text>
+        <Text className="mt-2 text-base text-[#5f6368]">
+          Offline pediatric CT analysis powered by MedGemma-2B-IT-Q4. Import a CT study to begin.
+        </Text>
+      </View>
+
+      <View className="px-4 space-y-4">
+        <TouchableOpacity
+          className="bg-[#1a73e8] rounded-2xl px-4 py-4 flex-row items-center justify-between"
+          onPress={() => navigation.navigate('CTImport')}
+          accessibilityRole="button"
+          accessibilityLabel="New CT analysis"
+        >
+          <View className="flex-1">
+            <Text className="text-white text-lg font-semibold">New CT Analysis</Text>
+            <Text className="text-white/80 text-sm mt-1">
+              Import DICOM or NIfTI from this device. No cloud upload required.
+            </Text>
+          </View>
+          <Text className="text-3xl text-white ml-3">📁</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="bg-white rounded-2xl px-4 py-4 border border-[#dadce0]"
+          onPress={() => navigation.navigate('CTSerialCompare')}
+          accessibilityRole="button"
+          accessibilityLabel="Serial CT comparison"
+        >
+          <Text className="text-base font-semibold text-[#202124]">Serial CT Comparison</Text>
+          <Text className="mt-1 text-sm text-[#5f6368]">
+            Track progression across multiple CT studies for the same child.
+          </Text>
+        </TouchableOpacity>
+
+        <View className="bg-white rounded-2xl px-4 py-4 border border-[#dadce0]">
+          <Text className="text-base font-semibold text-[#202124]">Supported Pediatric Use Cases</Text>
+          <Text className="mt-2 text-sm text-[#5f6368]">
+            • Preemie IVH (CT head) {'\n'}
+            • Complex fractures {'\n'}
+            • Abdominal emergencies (NEC, appendicitis) {'\n'}
+            • Oncology staging and treatment response
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+CTImportScreen
+Create src/screens/CTScan/CTImportScreen.tsx:
+tsx
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { pickCTFile, loadCTVolumeFromFile } from '../../services/ct/dicomLoader';
+import { edgeAiEngine } from '../../services/ct/edgeAiEngine';
+import { buildCTFhirBundle } from '../../services/ct/fhirExporter';
+import { CTVolume, CTInferenceResult } from '../../types/ct';
+
+export const CTImportScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const [loading, setLoading] = useState(false);
+  const [volume, setVolume] = useState<CTVolume | null>(null);
+  const [result, setResult] = useState<CTInferenceResult | null>(null);
+
+  const handleImport = async () => {
+    try {
+      setLoading(true);
+      const asset = await pickCTFile();
+      if (!asset) {
+        setLoading(false);
+        return;
+      }
+
+      const vol = await loadCTVolumeFromFile(asset);
+      setVolume(vol);
+
+      const inference = await edgeAiEngine.runInference3D(vol);
+      setResult(inference);
+
+      const { json } = buildCTFhirBundle(vol.meta, inference);
+      // optionally store FHIR bundle or show preview
+
+      navigation.navigate('CT3DViewer', {
+        volumeMeta: vol.meta,
+        inference,
+      });
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert('CT Import Failed', err?.message ?? 'Unable to load CT study. Please try again.');
+      setLoading(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView className="flex-1 bg-[#f8f9fa]">
+      <View className="px-4 pt-6 pb-4">
+        <Text className="text-2xl font-bold text-[#202124]">Import CT Study</Text>
+        <Text className="mt-2 text-sm text-[#5f6368]">
+          Import DICOM or NIfTI files from this device. Files stay local; no upload to cloud.
+        </Text>
+      </View>
+
+      <View className="px-4">
+        <TouchableOpacity
+          className="bg-white rounded-2xl px-4 py-4 border border-[#dadce0]"
+          onPress={handleImport}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Select CT file from this device"
+        >
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+              <Text className="text-base font-semibold text-[#202124]">
+                {loading ? 'Loading CT study…' : 'Choose CT DICOM / NIfTI'}
+              </Text>
+              <Text className="mt-1 text-sm text-[#5f6368]">
+                Typical size: 100–500MB. 3D volume reconstructed offline, then analyzed.
+              </Text>
+            </View>
+            {loading ? (
+              <ActivityIndicator color="#1a73e8" />
+            ) : (
+              <Text className="text-3xl ml-3">📂</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {volume && result && (
+          <View className="mt-6 bg-white rounded-2xl px-4 py-4 border border-[#dadce0]">
+            <Text className="text-base font-semibold text-[#202124]">Last Analysis</Text>
+            <Text className="mt-1 text-sm text-[#5f6368]">
+              Volume ID: {volume.meta.id}{'\n'}
+              Slices: {volume.meta.sliceCount} • {volume.meta.rows}×{volume.meta.cols}{'\n'}
+              Latency: {result.latencyMs.toFixed(0)} ms • Risk: {result.riskTier}
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+};
+
+CT3DViewerScreen (Multiplanar + Risk Summary)
+Create src/screens/CTScan/CT3DViewerScreen.tsx:
+tsx
+import React, { useState } from 'react';
+import { View, Text, Slider, TouchableOpacity, ScrollView } from 'react-native';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { CTVolumeMeta, CTInferenceResult } from '../../types/ct';
+import { CTRiskBadge } from '../../components/ct/CTRiskBadge';
+// You can add a basic pseudo-multiplanar viewer placeholder here.
+
+type Params = {
+  CT3DViewer: {
+    volumeMeta: CTVolumeMeta;
+    inference: CTInferenceResult;
+  };
+};
+
+export const CT3DViewerScreen: React.FC = () => {
+  const route = useRoute<RouteProp<Params, 'CT3DViewer'>>();
+  const { volumeMeta, inference } = route.params;
+  const [axialIndex, setAxialIndex] = useState(Math.floor(volumeMeta.sliceCount / 2));
+
+  return (
+    <ScrollView className="flex-1 bg-[#f8f9fa]">
+      <View className="px-4 pt-6 pb-4">
+        <Text className="text-2xl font-bold text-[#202124]">3D CT Viewer</Text>
+        <Text className="mt-1 text-sm text-[#5f6368]">
+          Multiplanar visualization and risk summary for this pediatric CT study.
+        </Text>
+      </View>
+
+      <View className="px-4 space-y-4">
+        <CTRiskBadge inference={inference} />
+
+        <View className="bg-black rounded-2xl overflow-hidden h-64 items-center justify-center">
+          {/* Placeholder for multiplanar image */}
+          <Text className="text-white text-sm">
+            Axial slice {axialIndex + 1} / {volumeMeta.sliceCount}
+          </Text>
+          <Text className="text-white text-xs mt-2 opacity-80">
+            (Multiplanar viewer placeholder — connect to native renderer / WebGL later)
+          </Text>
+        </View>
+
+        <View className="bg-white rounded-2xl px-4 py-4 border border-[#dadce0]">
+          <Text className="text-sm font-semibold text-[#202124] mb-2">Axial Slice</Text>
+          {/* Use @react-native-community/slider or similar; simplified here */}
+          <Slider
+            minimumValue={0}
+            maximumValue={volumeMeta.sliceCount - 1}
+            value={axialIndex}
+            step={1}
+            onValueChange={(v) => setAxialIndex(v)}
+          />
+        </View>
+
+        <View className="bg-white rounded-2xl px-4 py-4 border border-[#dadce0]">
+          <Text className="text-base font-semibold text-[#202124]">Automated Summary</Text>
+          <Text className="mt-2 text-sm text-[#5f6368]">
+            {inference.clinicalSummary}
+          </Text>
+          <Text className="mt-3 text-sm font-semibold text-[#202124]">Key Findings</Text>
+          {inference.keyFindings.map((f, idx) => (
+            <Text key={idx} className="mt-1 text-sm text-[#5f6368]">
+              • {f}
+            </Text>
+          ))}
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+CTRiskBadge Component
+Create src/components/ct/CTRiskBadge.tsx:
+tsx
+import React from 'react';
+import { View, Text } from 'react-native';
+import { CTInferenceResult } from '../../types/ct';
+
+export const CTRiskBadge: React.FC<{ inference: CTInferenceResult }> = ({ inference }) => {
+  const { riskTier, domainScores } = inference;
+
+  const bg =
+    riskTier === 'ON_TRACK' ? 'bg-[#e6f4ea]' :
+    riskTier === 'MONITOR' ? 'bg-[#fef7e0]' :
+    riskTier === 'REFER' ? 'bg-[#fce8e6]' :
+    'bg-[#fce8e6]';
+
+  const icon =
+    riskTier === 'ON_TRACK' ? '✅' :
+    riskTier === 'MONITOR' ? '⚠️' :
+    riskTier === 'REFER' ? '🚩' :
+    '🚨';
+
+  return (
+    <View className={`${bg} rounded-2xl px-4 py-3 flex-row items-center justify-between`}>
+      <View className="flex-row items-center">
+        <Text className="text-2xl mr-3">{icon}</Text>
+        <View>
+          <Text className="text-base font-semibold text-[#202124]">
+            CT Risk: {riskTier}
+          </Text>
+          <Text className="text-xs text-[#5f6368]">
+            Hemorrhage {(domainScores.hemorrhageRisk * 100).toFixed(0)}% •
+            Fracture {(domainScores.fractureRisk * 100).toFixed(0)}% •
+            NEC {(domainScores.necRisk * 100).toFixed(0)}% •
+            Tumor {(domainScores.tumorBurden * 100).toFixed(0)}%
+          </Text>
+        </View>
+      </View>
+      <Text className="text-xs text-[#5f6368]">
+        ~{(inference.latencyMs / 1000).toFixed(1)}s offline
+      </Text>
+    </View>
+  );
+};
+
+
+Navigation Integration
+Update the main navigator (e.g. src/navigation/AppNavigator.tsx) to add a CT stack:
+tsx
+// Pseudocode – adapt to the repo’s existing navigation config.
+<Stack.Screen
+  name="CTScanHome"
+  component={CTScanHomeScreen}
+  options={{ title: 'CT Scan' }}
+/>
+<Stack.Screen
+  name="CTImport"
+  component={CTImportScreen}
+  options={{ title: 'Import CT' }}
+/>
+<Stack.Screen
+  name="CT3DViewer"
+  component={CT3DViewerScreen}
+  options={{ title: '3D Viewer' }}
+/>
+<Stack.Screen
+  name="CTSerialCompare"
+  component={CTSerialCompareScreen}
+/>
+
+Also add an entry point card in whatever home/dashboard screen exists (e.g. “CT Scan (Edge AI Prize)”).
+
+Implementation Rules
+When you generate code:
+Use TypeScript everywhere (.tsx / .ts).
+Keep code compatible with Expo SDK 51 and React Native 0.76+.
+Do not actually ship huge models; only define realistic interfaces and comments showing where MedGemma TFLite/ONNX hooks in.
+Be explicit with TODOs for native CT/3D rendering (e.g., mention VisionCamera frame processors or platform-specific OpenGL modules).react-native-vision-camera+1
+Maintain privacy-by-design:
+No external uploads.
+All inference and DICOM parsing local.
+Make all screens keyboard accessible where possible; ensure proper accessibilityLabels and 44pt hit targets.
+
+Deliverables the AI Should Produce
+In this repo, add or modify files to produce:
+src/types/ct.ts (types)
+src/services/ct/dicomLoader.ts
+src/services/ct/ctPreprocess.ts
+src/services/ct/edgeAiEngine.ts
+src/services/ct/fhirExporter.ts
+src/screens/CTScan/CTScanHomeScreen.tsx
+src/screens/CTScan/CTImportScreen.tsx
+src/screens/CTScan/CT3DViewerScreen.tsx
+src/components/ct/CTRiskBadge.tsx
+Navigation wiring for CTScan stack.
+You may also:
+Add CTSerialCompareScreen.tsx and simple serial comparison UI.
+Add basic mock data or AsyncStorage-backed history for serial studies.
+All generated code must be syntactically correct, strongly typed, and immediately droppable into the existing project with minimal edits.
+
+

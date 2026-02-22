@@ -43,8 +43,10 @@ The application is built with React 18 and Vite 6, utilizing Tailwind CSS v4 for
 - **Diagnostics**: /edge-diagnostics route shows model info, benchmark latency, runtime metrics
 - **Provenance**: Edge results tagged with "medgemma-pediscreen-edge" model ID
 - **Multi-Modal Models**: Vocal analysis (cry classification, babbling milestones), Pose estimation (BIMS scoring, motor milestones), X-ray bone age (Greulich-Pyle, skeletal landmarks)
-- **MedGemma Registry**: 6 model variants (PediScreen 2B, Vocal LoRA, MoveNet Infant/Child, BoneAge GP, Fusion Ensemble)
+- **MedGemma Registry**: 7 model variants (PediScreen 2B, Vocal LoRA, MoveNet Infant/Child, BoneAge GP, CT 2B-IT Q4, Fusion Ensemble)
 - **X-ray Analysis**: Bone age assessment with Z-score, percentile, growth velocity, fracture risk, ICD-10 codes, longitudinal timeline
+- **CT Scan Analysis**: DICOM/NIfTI→3D volume pipeline with 64³ patch extraction, multiplanar Canvas viewer (axial/coronal/sagittal), 4-tier risk assessment (hemorrhage/fracture/NEC/tumor), FHIR R4 export, serial study comparison
+- **CT Use Cases**: Preemie IVH, pediatric fractures, abdominal emergencies (NEC/appendicitis), oncology staging
 - **Models Dashboard**: /medgemma-models shows full model registry with benchmarks and deployment strategy
 
 ## External Dependencies

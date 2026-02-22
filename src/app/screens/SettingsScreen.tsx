@@ -235,6 +235,19 @@ export function SettingsScreen() {
               </div>
               <ChevronRight className="w-5 h-5 text-[#999999]" />
             </button>
+            <button
+              onClick={() => navigate("/ct-scan")}
+              className="w-full bg-white border-2 border-gray-100 rounded-2xl p-4 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <Cpu className="w-5 h-5 text-[#00838F]" />
+                <div className="text-left">
+                  <p className="font-semibold text-[#1A1A1A]">CT Scan Analysis</p>
+                  <p className="text-xs text-[#666666]">3D CT volume inference for pediatric emergencies</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#999999]" />
+            </button>
           </div>
 
           <div className="space-y-3">

@@ -22,6 +22,13 @@ import type {
   XrayLandmark,
 } from "./medgemmaSchemas";
 import { INFANT_KEYPOINTS, getMotorMilestonesForAge } from "./medgemmaSchemas";
+import type { CTAnalysisInput, CTAnalysisResult } from "../ct/ctSchemas";
+import {
+  inferCTRiskTier,
+  generateCTKeyFindings,
+  generateCTUseCaseFlags,
+  generateCTClinicalSummary,
+} from "../ct/ctSchemas";
 
 function scoreToRisk(score: number): RiskLevel {
   if (score >= 0.75) return "on_track";
@@ -44,7 +51,7 @@ export class MockRuntime implements LocalModelRuntime {
   }
 
   getCapabilities(): MedGemmaRuntimeCapabilities {
-    return { screening: true, vocal: true, pose: true, fusion: true, xray: true };
+    return { screening: true, vocal: true, pose: true, fusion: true, xray: true, ct: true };
   }
 
   async runRiskModel(features: Float32Array): Promise<LocalInferenceResult> {
@@ -327,6 +334,44 @@ export class MockRuntime implements LocalModelRuntime {
       inferenceTimeMs: Math.round(performance.now() - start),
       parentSummary,
       clinicalNotes,
+    };
+  }
+
+  async runCTAnalysis(input: CTAnalysisInput): Promise<CTAnalysisResult> {
+    const start = performance.now();
+    await new Promise((res) => setTimeout(res, 1800 + Math.random() * 600));
+
+    const modality = input.volumeMeta.modality;
+    const hemorrhageBase = modality === "CT_HEAD" ? 0.4 : 0.15;
+    const necBase = modality === "CT_ABDOMEN" ? 0.35 : 0.1;
+    const fractureBase = modality === "CT_MS" ? 0.4 : 0.2;
+
+    const domainScores = {
+      hemorrhageRisk: Math.min(1, hemorrhageBase + Math.random() * 0.45),
+      fractureRisk: Math.min(1, fractureBase + Math.random() * 0.45),
+      necRisk: Math.min(1, necBase + Math.random() * 0.45),
+      tumorBurden: Math.min(1, 0.1 + Math.random() * 0.5),
+    };
+
+    const riskTier = inferCTRiskTier(domainScores);
+    const keyFindings = generateCTKeyFindings(modality, domainScores, riskTier);
+    const useCaseFlags = generateCTUseCaseFlags(modality, domainScores);
+    const clinicalSummary = generateCTClinicalSummary(
+      modality,
+      domainScores,
+      riskTier,
+      input.volumeMeta.sliceCount
+    );
+
+    return {
+      volumeId: input.volumeMeta.id,
+      domainScores,
+      riskTier,
+      keyFindings,
+      clinicalSummary,
+      latencyMs: Math.round(performance.now() - start),
+      modelVersion: "MedGemma-2B-IT-Q4",
+      useCaseFlags,
     };
   }
 

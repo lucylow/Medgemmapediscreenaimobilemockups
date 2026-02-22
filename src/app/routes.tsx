@@ -23,6 +23,10 @@ import { QRScannerScreen } from "./screens/QRScannerScreen";
 import { EdgeDiagnosticsScreen } from "./screens/EdgeDiagnosticsScreen";
 import { MedGemmaModelsScreen } from "./screens/MedGemmaModelsScreen";
 import { XrayAnalysisScreen } from "./screens/XrayAnalysisScreen";
+import { CTScanHomeScreen } from "./screens/CTScanHomeScreen";
+import { CTImportScreen } from "./screens/CTImportScreen";
+import { CT3DViewerScreen } from "./screens/CT3DViewerScreen";
+import { CTSerialCompareScreen } from "./screens/CTSerialCompareScreen";
 
 export const router = createBrowserRouter([
   {
@@ -120,5 +124,21 @@ export const router = createBrowserRouter([
   {
     path: "/xray-analysis",
     Component: XrayAnalysisScreen,
+  },
+  {
+    path: "/ct-scan",
+    Component: CTScanHomeScreen,
+  },
+  {
+    path: "/ct-import",
+    Component: CTImportScreen,
+  },
+  {
+    path: "/ct-viewer",
+    Component: CT3DViewerScreen,
+  },
+  {
+    path: "/ct-serial",
+    Component: CTSerialCompareScreen,
   },
 ]);

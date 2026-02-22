@@ -3,6 +3,7 @@ import { LocalInferenceResult, LocalSummaryResult, ModelProvenance } from "./inf
 import { encodeFeaturesForModel, featuresToFloat32Array } from "./featureEncoding";
 import { LocalModelRuntime, MedGemmaRuntimeCapabilities } from "./LocalModelRuntime";
 import type { VocalAnalysisInput, VocalAnalysisResult, PoseEstimationInput, PoseEstimationResult, FusionInput, FusionResult, XrayAnalysisInput, XrayAnalysisResult } from "./medgemmaSchemas";
+import type { CTAnalysisInput, CTAnalysisResult } from "../ct/ctSchemas";
 
 export class EdgeAiEngine {
   private runtime: LocalModelRuntime;
@@ -15,6 +16,7 @@ export class EdgeAiEngine {
   private _poseCount = 0;
   private _fusionCount = 0;
   private _xrayCount = 0;
+  private _ctCount = 0;
 
   constructor(runtime: LocalModelRuntime) {
     this.runtime = runtime;
@@ -63,8 +65,12 @@ export class EdgeAiEngine {
     return this._xrayCount;
   }
 
+  get ctCount(): number {
+    return this._ctCount;
+  }
+
   get totalInferenceCount(): number {
-    return this._inferenceCount + this._vocalCount + this._poseCount + this._fusionCount + this._xrayCount;
+    return this._inferenceCount + this._vocalCount + this._poseCount + this._fusionCount + this._xrayCount + this._ctCount;
   }
 
   getCapabilities(): MedGemmaRuntimeCapabilities {
@@ -141,6 +147,15 @@ export class EdgeAiEngine {
 
     const result = await this.runtime.runXrayAnalysis(input);
     this._xrayCount++;
+    return result;
+  }
+
+  async runCTAnalysis(input: CTAnalysisInput): Promise<CTAnalysisResult | null> {
+    if (!this._ready) await this.warmup();
+    if (!this.runtime.runCTAnalysis) return null;
+
+    const result = await this.runtime.runCTAnalysis(input);
+    this._ctCount++;
     return result;
   }
 }

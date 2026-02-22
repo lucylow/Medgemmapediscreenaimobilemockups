@@ -290,6 +290,7 @@ export function MedGemmaModelsScreen() {
                     <th className="text-right py-1 px-1">Vocal</th>
                     <th className="text-right py-1 px-1">Pose</th>
                     <th className="text-right py-1 px-1">X-ray</th>
+                    <th className="text-right py-1 px-1">CT</th>
                     <th className="text-right py-1 pl-1">Fusion</th>
                   </tr>
                 </thead>
@@ -301,6 +302,7 @@ export function MedGemmaModelsScreen() {
                       <td className="py-1.5 px-1 text-right text-[#666666]">{benchmarks.vocal ?? "—"}ms</td>
                       <td className="py-1.5 px-1 text-right text-[#666666]">{benchmarks.pose}ms</td>
                       <td className="py-1.5 px-1 text-right text-[#666666]">{"xray" in benchmarks ? (benchmarks as Record<string, number | null>).xray ?? "—" : "—"}ms</td>
+                      <td className="py-1.5 px-1 text-right text-[#666666]">{"ct" in benchmarks ? (benchmarks as Record<string, number | null>).ct ?? "—" : "—"}ms</td>
                       <td className="py-1.5 pl-1 text-right text-[#666666]">{benchmarks.fusion ?? "—"}ms</td>
                     </tr>
                   ))}
