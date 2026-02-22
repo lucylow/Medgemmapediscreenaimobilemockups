@@ -1,0 +1,670 @@
+Below is a long-form, detailed text prompt you can drop into Replit/Cursor as the project system prompt for your React Native (TypeScript, Expo) edge-AI mobile app for the MedGemma Impact Challenge – PediScreen AI (Pediatric Screening Assistant). It’s written as if you’re instructing an expert AI/code agent to design and implement the app end‑to‑end, with a strong focus on on‑device / edge AI for The Edge AI Prize.
+You can treat this as a design+architecture “spec document” that should translate into ~10+ pages of code and scaffolding once implemented.
+
+TITLE
+PediScreen AI – Cross‑Platform Edge AI Mobile (iOS 17+ / Android 15+)
+Role & Mission
+You are a senior React Native + TypeScript engineer, edge AI architect, and pediatric UX designer building a cross‑platform mobile app (Expo, React Native) for the:
+MedGemma Impact Challenge – Kaggle
+Track: PediScreen AI – Pediatric Screening Assistant
+Prize focus: The Edge AI Prize (HAI‑DEF model running on device)
+Your mission:
+Design and implement a React Native Expo application that:
+Runs on iOS 17+ and Android 15+.
+Uses on‑device / edge AI for key inference paths (e.g., HAI‑DEF / MedGemma 4B‑class variant, or a compatible distilled model) when possible.
+Falls back gracefully to a lightweight backend when needed (hybrid).
+Feels like a polished consumer app: smooth navigation, delightful micro‑interactions, clear flows for:
+Starting a pediatric developmental screening.
+Collecting structured questions + free text + images/drawings.
+Running local AI screening inference when available.
+Summarizing results in parent‑friendly, non‑diagnostic language.
+Focus this prompt on:
+Architecture & file layout for a React Native + Expo project in Replit.
+Screen layouts & flows (UI/UX).
+Component hierarchies and core hooks.
+On‑device model integration patterns (no need to ship actual .tflite or .gguf files, but code/structure must be ready).
+Demo / mock mode so the app runs without any server.
+Keep strong emphasis on:
+Edge AI: On‑device inference for at least one critical path (e.g., risk estimation).
+Safety: Screening‑only, non‑diagnostic.
+Offline‑first: App remains useful without internet (local sessions + local inference).
+Global Pediatric Context: CHW‑friendly, low‑resource settings.
+You are allowed to use high‑level pseudo‑imports for native modules (e.g., TFLite, MediaPipe, react-native-ai), and must clearly mark integration points as TODO.
+
+1. Overall App Concept
+PediScreen AI is a pediatric developmental screening companion used by:
+Parents/caregivers.
+Community health workers (CHWs) in clinics / home visits.
+Clinicians (review / demo mode).
+Key flows:
+Child selection and profile
+Pseudonymous child profiles (initials/nickname, age, optional metadata).
+Screening session
+Age‑banded developmental questions across domains:
+Communication.
+Gross motor.
+Fine motor.
+Social‑emotional.
+Cognitive/problem‑solving.
+Optional:
+Parent free‑text concerns.
+Photos/drawings (child’s drawing, toy stacking, etc) captured by camera or gallery.
+Edge AI inference (HAI‑DEF / MedGemma‑like)
+On‑device model processes:
+Structured question answers.
+Short text description of concerns.
+Optional low‑dim visual features (embeddings) for images.
+Outputs:
+Domain‑level screening risk (On Track / Monitor / Discuss / Refer).
+Draft parent‑facing summary.
+Result presentation & safety
+Present risk levels as screening results, not diagnoses.
+Parent‑friendly explanations, next‑step suggestions, disclaimers.
+Timeline / history
+Local log of screenings for each child.
+Trend view (even simple: list of past sessions).
+All flows must function in offline / edge‑only mode, with mock and local inference (for the challenge demo and Replit preview). Cloud backend is optional add‑on, not a core dependency.
+
+2. Tech Stack & Edge AI Strategy
+2.1 Tech Stack
+React Native via Expo (managed workflow).
+TypeScript everywhere.
+Navigation: React Navigation or Expo Router.
+State: React context + hooks (no heavy global state unless needed).
+Async Storage: for local persistence (child profiles, sessions, cached results).
+Edge AI integration:
+Abstracted model runtime; concrete examples:
+react-native-ai, react-native-fast-tflite, MediaPipe, or local LLM + vision wrappers.
+Use TypeScript interfaces and a pluggable adapter pattern.
+2.2 Edge AI Design Constraints
+On‑device model is a small/mid HAI‑DEF or MedGemma‑class variant (e.g., 4B), or a compatible distilled model (for inference only).
+Inference tasks:
+Screening risk classification per domain.
+Short local summarization (e.g., 2–3 sentence parent summary).
+To keep real device performance plausible:
+Consider a two‑stage approach:
+Stage A: Lightweight on‑device classifier (small MLP or distilled model) for risk scores from structured features.
+Stage B: On‑device or hybrid summarization model (tiny text LLM or local templating) to create user‑friendly text.
+Provide a clear Edge AI abstraction layer:
+src/edge/EdgeAiEngine.ts
+Export methods:
+runLocalScreeningInference(structuredInput): Promise<LocalInferenceResult>
+generateLocalParentSummary(inferenceResult): Promise<string>
+Add TODO comments where real model files, warmup, quantization decisions, and runtime integration would go.
+
+3. Project Structure (React Native + Expo, Replit‑Friendly)
+Target structure:
+text
+root/
+  app.json
+  package.json
+  tsconfig.json
+  babel.config.js
+
+  App.tsx
+
+  src/
+    navigation/
+      RootNavigator.tsx
+      types.ts
+
+    screens/
+      WelcomeScreen.tsx
+      RoleSelectScreen.tsx
+      HomeScreen.tsx
+      ChildListScreen.tsx
+      ChildFormScreen.tsx
+
+      ScreeningIntroScreen.tsx
+      ScreeningDomainSelectScreen.tsx
+      ScreeningQuestionsScreen.tsx
+      ScreeningMediaScreen.tsx
+      ScreeningReviewScreen.tsx
+      ScreeningResultScreen.tsx
+      TimelineScreen.tsx
+      ClinicianDemoScreen.tsx
+      SettingsScreen.tsx
+      EdgeDiagnosticsScreen.tsx
+
+    components/
+      layout/
+        ScreenContainer.tsx
+        AppHeader.tsx
+        GradientBackground.tsx
+
+      ui/
+        PrimaryButton.tsx
+        SecondaryButton.tsx
+        IconButton.tsx
+        TextField.tsx
+        TextArea.tsx
+        PillToggle.tsx
+        DomainChip.tsx
+        RiskBadge.tsx
+        InfoBanner.tsx
+        Tag.tsx
+        Card.tsx
+        ProgressDots.tsx
+
+      screening/
+        QuestionCard.tsx
+        DomainProgressBar.tsx
+        MediaAttachmentCard.tsx
+        SummarySection.tsx
+        DomainResultCard.tsx
+        TimelineItem.tsx
+
+      common/
+        DisclaimerFooter.tsx
+        LoadingOverlay.tsx
+        ErrorState.tsx
+        OfflineBanner.tsx
+
+    theme/
+      colors.ts
+      typography.ts
+      spacing.ts
+      shadows.ts
+      ThemeProvider.tsx
+
+    state/
+      ChildrenContext.tsx
+      ScreeningSessionContext.tsx
+      EdgeStatusContext.tsx
+
+    hooks/
+      useChildren.ts
+      useScreeningSession.ts
+      useEdgeEngine.ts
+      useMockData.ts
+      useOfflineAwareNavigation.ts
+
+    edge/
+      EdgeAiEngine.ts
+      LocalModelRuntime.ts        # abstraction over tflite/gguf/MediaPipe/etc
+      featureEncoding.ts          # map answers and text into model features
+      inferenceSchemas.ts         # TS types for input/output
+
+    storage/
+      localStorage.ts             # AsyncStorage helpers
+
+    mock/
+      mockChildren.ts
+      mockQuestions.ts
+      mockScreeningResults.ts
+
+    utils/
+      age.ts
+      formatting.ts
+      validation.ts
+      logger.ts
+
+
+4. Core Data Types & Edge Inference Types
+Define core TS types under src/edge/inferenceSchemas.ts and reused in UI:
+ts
+// src/edge/inferenceSchemas.ts
+
+export type DomainId =
+  | 'communication'
+  | 'gross_motor'
+  | 'fine_motor'
+  | 'social'
+  | 'cognitive';
+
+export type RiskLevel = 'on_track' | 'monitor' | 'discuss' | 'refer';
+
+export type QuestionAnswerValue = 'yes' | 'sometimes' | 'not_yet' | null;
+
+export interface Question {
+  id: string;
+  domain: DomainId;
+  prompt: string;
+  helperText?: string;
+  ageBand: string; // e.g., "18-24"
+}
+
+export interface QuestionAnswer {
+  questionId: string;
+  value: QuestionAnswerValue;
+}
+
+export interface DomainAnswers {
+  domain: DomainId;
+  answers: QuestionAnswer[];
+}
+
+export interface MediaAttachment {
+  id: string;
+  kind: 'photo' | 'drawing' | 'video_frame';
+  uri: string; // local URI / file path
+  note?: string;
+}
+
+export interface ScreeningSessionInput {
+  id: string;
+  childId: string;
+  ageMonths: number;
+  createdAt: string;
+  role: 'caregiver' | 'chw' | 'clinician';
+  domains: DomainAnswers[];
+  parentConcerns: string;
+  media: MediaAttachment[];
+}
+
+export interface DomainRisk {
+  domain: DomainId;
+  risk: RiskLevel;
+  score: number; // 0-1 confidence
+}
+
+export interface LocalInferenceResult {
+  sessionId: string;
+  overallRisk: RiskLevel;
+  overallScore: number;
+  domainRisks: DomainRisk[];
+  // Optionally, structured hints for summarization:
+  keyFindings: string[];
+  strengths: string[];
+  watchAreas: string[];
+}
+
+export interface LocalSummaryResult {
+  parentSummary: string; // 2-4 sentences, 6th grade level.
+  clinicianSummary: string; // 2-4 sentences, more technical.
+  nextSteps: string[];
+}
+
+Children & session types (for UI/state):
+ts
+export interface Child {
+  id: string;
+  displayName: string;          // nickname/initials
+  birthDate: string;            // ISO; age derived
+  sex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  primaryLanguage?: string;
+}
+
+export interface ScreeningHistoryItem {
+  id: string;
+  childId: string;
+  ageMonths: number;
+  createdAt: string;
+  overallRisk: RiskLevel;
+  shortSummary: string;
+}
+
+
+5. Edge AI Integration Layer
+5.1 EdgeAiEngine Abstraction
+src/edge/EdgeAiEngine.ts:
+Coordinates feature encoding, local model runtime, and summarization.
+Must be safe to use on both iOS and Android.
+Exposes a simple TS API for screens/hooks.
+ts
+// src/edge/EdgeAiEngine.ts
+import { ScreeningSessionInput, LocalInferenceResult, LocalSummaryResult } from './inferenceSchemas';
+import { encodeFeaturesForModel } from './featureEncoding';
+import { LocalModelRuntime } from './LocalModelRuntime';
+
+export class EdgeAiEngine {
+  private runtime: LocalModelRuntime;
+  private ready: boolean = false;
+
+  constructor(runtime: LocalModelRuntime) {
+    this.runtime = runtime;
+  }
+
+  async warmup(): Promise<void> {
+    // TODO: preload weights, allocate tensors, run dummy inference, etc.
+    await this.runtime.initialize();
+    this.ready = true;
+  }
+
+  isReady(): boolean {
+    return this.ready;
+  }
+
+  async runScreeningInference(
+    session: ScreeningSessionInput
+  ): Promise<LocalInferenceResult> {
+    if (!this.ready) {
+      await this.warmup();
+    }
+
+    const features = encodeFeaturesForModel(session);
+    // features: Float32Array or similar
+
+    const inference = await this.runtime.runRiskModel(features);
+    // runtime returns a structured object that we map to LocalInferenceResult
+
+    return inference;
+  }
+
+  async generateSummaries(
+    session: ScreeningSessionInput,
+    inference: LocalInferenceResult
+  ): Promise<LocalSummaryResult> {
+    // Option 1: call a tiny on-device text model via runtime.runSummaryModel()
+    // Option 2: use a templating + heuristics approach (for MVP) that can be replaced later.
+
+    const summary = await this.runtime.runSummaryModel({ session, inference });
+
+    return summary;
+  }
+}
+
+5.2 LocalModelRuntime Interface
+src/edge/LocalModelRuntime.ts:
+ts
+import { LocalInferenceResult, ScreeningSessionInput, LocalSummaryResult } from './inferenceSchemas';
+
+export interface SummaryInput {
+  session: ScreeningSessionInput;
+  inference: LocalInferenceResult;
+}
+
+export interface LocalModelRuntime {
+  initialize(): Promise<void>;
+  runRiskModel(features: Float32Array): Promise<LocalInferenceResult>;
+  runSummaryModel(input: SummaryInput): Promise<LocalSummaryResult>;
+}
+
+Implementation is pluggable and can be replaced depending on hardware / library:
+TfliteRuntime using react-native-fast-tflite.
+ReactNativeAiRuntime using react-native-ai for on-device LLM.
+MockRuntime for demo.
+5.3 Mock Runtime for Demo & Replit
+Implement MockRuntime so the entire app runs without any real model:
+ts
+// src/edge/MockRuntime.ts
+import { LocalModelRuntime, SummaryInput } from './LocalModelRuntime';
+import { LocalInferenceResult, LocalSummaryResult, RiskLevel, DomainRisk } from './inferenceSchemas';
+
+export class MockRuntime implements LocalModelRuntime {
+  async initialize(): Promise<void> {
+    // No-op, maybe small delay to simulate loading
+    await new Promise((res) => setTimeout(res, 300));
+  }
+
+  async runRiskModel(features: Float32Array): Promise<LocalInferenceResult> {
+    // Simple heuristic: random but biased
+    const domainRisks: DomainRisk[] = [
+      { domain: 'communication', risk: 'monitor', score: 0.65 },
+      { domain: 'gross_motor', risk: 'on_track', score: 0.85 },
+      { domain: 'fine_motor', risk: 'on_track', score: 0.80 },
+      { domain: 'social', risk: 'monitor', score: 0.6 },
+      { domain: 'cognitive', risk: 'on_track', score: 0.9 },
+    ];
+
+    const overallRisk: RiskLevel = 'monitor';
+
+    return {
+      sessionId: 'mock_session',
+      overallRisk,
+      overallScore: 0.72,
+      domainRisks,
+      keyFindings: ['Communication skills emerging but slightly delayed', 'Social play may benefit from extra support'],
+      strengths: ['Gross motor skills appear on track', 'Curiosity and problem solving look strong'],
+      watchAreas: ['Expressive language', 'Peer interaction'],
+    };
+  }
+
+  async runSummaryModel({ session, inference }: SummaryInput): Promise<LocalSummaryResult> {
+    // Handcrafted summary for demo; real implementation would use a small local model.
+    return {
+      parentSummary:
+        'This screening suggests your child is doing well in many areas, with a few communication and social skills to watch more closely. This does not mean anything is “wrong”, but it may help to talk with your child’s health provider and repeat screening in a few months.',
+      clinicianSummary:
+        'Screening indicates borderline expressive language and social engagement relative to age expectations, with gross and fine motor skills intact. Recommend parent-guided language stimulation, supported play with peers, and repeat screening in 3 months.',
+      nextSteps: [
+        'Share this summary with your child’s doctor, nurse, or health worker.',
+        'Try daily talking, reading, and naming games.',
+        'Repeat this screening in 3–6 months or sooner if you have concerns.',
+      ],
+    };
+  }
+}
+
+
+6. Edge Status & Diagnostics
+Create a context to expose edge model status to the UI (e.g., for an “Edge diagnostics” screen).
+src/state/EdgeStatusContext.tsx:
+ts
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { EdgeAiEngine } from '../edge/EdgeAiEngine';
+import { MockRuntime } from '../edge/MockRuntime';
+
+interface EdgeStatus {
+  engine: EdgeAiEngine | null;
+  ready: boolean;
+  mode: 'mock' | 'local-model';
+  lastError?: string;
+}
+
+const EdgeStatusContext = createContext<EdgeStatus>({ engine: null, ready: false, mode: 'mock' });
+
+export const EdgeStatusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [state, setState] = useState<EdgeStatus>({
+    engine: null,
+    ready: false,
+    mode: 'mock',
+  });
+
+  useEffect(() => {
+    const runtime = new MockRuntime(); // TODO: swap with real runtime when available
+    const engine = new EdgeAiEngine(runtime);
+
+    engine
+      .warmup()
+      .then(() => {
+        setState({ engine, ready: true, mode: 'mock' });
+      })
+      .catch((err) => {
+        setState({ engine: null, ready: false, mode: 'mock', lastError: String(err) });
+      });
+  }, []);
+
+  return (
+    <EdgeStatusContext.Provider value={state}>{children}</EdgeStatusContext.Provider>
+  );
+};
+
+export const useEdgeStatus = () => useContext(EdgeStatusContext);
+
+Wrap App.tsx with EdgeStatusProvider.
+
+7. Screening Session Flow & Hooks
+7.1 ScreeningSessionContext
+Manages the current screening session state.
+ts
+// src/state/ScreeningSessionContext.tsx
+import React, { createContext, useContext, useState, useMemo } from 'react';
+import {
+  ScreeningSessionInput,
+  DomainId,
+  QuestionAnswerValue,
+  DomainAnswers,
+  MediaAttachment,
+} from '../edge/inferenceSchemas';
+import { v4 as uuidv4 } from 'uuid';
+
+interface ScreeningSessionContextValue {
+  session: ScreeningSessionInput | null;
+  startSession: (childId: string, ageMonths: number, role: ScreeningSessionInput['role']) => void;
+  setAnswer: (domain: DomainId, questionId: string, value: QuestionAnswerValue) => void;
+  setParentConcerns: (text: string) => void;
+  addMedia: (attachment: MediaAttachment) => void;
+  clearSession: () => void;
+}
+
+const ScreeningSessionContext = createContext<ScreeningSessionContextValue>({} as any);
+
+export const ScreeningSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [session, setSession] = useState<ScreeningSessionInput | null>(null);
+
+  const startSession = (childId: string, ageMonths: number, role: ScreeningSessionInput['role']) => {
+    const newSession: ScreeningSessionInput = {
+      id: uuidv4(),
+      childId,
+      ageMonths,
+      createdAt: new Date().toISOString(),
+      role,
+      domains: [],
+      parentConcerns: '',
+      media: [],
+    };
+    setSession(newSession);
+  };
+
+  const setAnswer = (domain: DomainId, questionId: string, value: QuestionAnswerValue) => {
+    if (!session) return;
+    const domains: DomainAnswers[] = [...session.domains];
+    let d = domains.find((x) => x.domain === domain);
+    if (!d) {
+      d = { domain, answers: [] };
+      domains.push(d);
+    }
+    const idx = d.answers.findIndex((a) => a.questionId === questionId);
+    if (idx >= 0) d.answers[idx].value = value;
+    else d.answers.push({ questionId, value });
+
+    setSession({ ...session, domains });
+  };
+
+  const setParentConcerns = (text: string) => {
+    if (!session) return;
+    setSession({ ...session, parentConcerns: text });
+  };
+
+  const addMedia = (attachment: MediaAttachment) => {
+    if (!session) return;
+    setSession({ ...session, media: [...session.media, attachment] });
+  };
+
+  const clearSession = () => setSession(null);
+
+  const value = useMemo(
+    () => ({ session, startSession, setAnswer, setParentConcerns, addMedia, clearSession }),
+    [session]
+  );
+
+  return (
+    <ScreeningSessionContext.Provider value={value}>
+      {children}
+    </ScreeningSessionContext.Provider>
+  );
+};
+
+export const useScreeningSession = () => useContext(ScreeningSessionContext);
+
+
+8. Edge‑First Screening Flow (UI & Logic)
+8.1 Flow Overview
+HomeScreen → choose child → ScreeningIntroScreen.
+ScreeningIntroScreen → confirm age, show disclaimers → ScreeningDomainSelectScreen.
+ScreeningDomainSelectScreen → choose domains (or auto) → ScreeningQuestionsScreen per domain.
+ScreeningMediaScreen → optional photos/drawings.
+ScreeningReviewScreen → review answers & concerns.
+On “Run local screening”:
+Call EdgeAiEngine.runScreeningInference.
+Then EdgeAiEngine.generateSummaries.
+Store LocalInferenceResult + LocalSummaryResult in memory / local history.
+ScreeningResultScreen → render results.
+8.2 ScreeningReviewScreen – Connecting to Edge AI
+In the review screen, implement a CTA that triggers local AI:
+tsx
+// Inside ScreeningReviewScreen.tsx
+import { useEdgeStatus } from '../state/EdgeStatusContext';
+import { useScreeningSession } from '../state/ScreeningSessionContext';
+import { useNavigation } from '@react-navigation/native';
+import { LocalInferenceResult, LocalSummaryResult } from '../edge/inferenceSchemas';
+
+const ScreeningReviewScreen: React.FC = () => {
+  const { engine, ready } = useEdgeStatus();
+  const { session } = useScreeningSession();
+  const navigation = useNavigation<any>();
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const onRunLocalScreening = async () => {
+    if (!engine || !session) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const inference: LocalInferenceResult = await engine.runScreeningInference(session);
+      const summary: LocalSummaryResult = await engine.generateSummaries(session, inference);
+
+      // TODO: persist inference+summary into local history / AsyncStorage
+      // For now, navigate to result screen with params
+      navigation.navigate('ScreeningResult', { inference, summary });
+    } catch (e: any) {
+      setError('Unable to run local screening. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Render review UI, plus button:
+  // "Run screening on this device (Edge AI)"
+};
+
+
+9. Offline‑First & Demo Mode
+All child data and screening histories are stored locally in AsyncStorage.
+Edge AI inference uses MockRuntime when a real model is not available.
+Provide an EdgeDiagnosticsScreen:
+Show:
+Engine mode: mock vs local-model.
+Ready state.
+Dummy benchmark metrics (e.g., warmup time, last inference latency).
+This highlights Edge AI capability for judges.
+
+10. Safety & Copy (Non‑Diagnostic)
+Throughout the UI and generated summaries:
+The app is screening-only:
+Never say “diagnosis”, “has autism”, “has ADHD”, “disorder”.
+Use language like:
+“Screening suggests…”
+“May benefit from…”
+“Could be helpful to discuss with your child’s health provider.”
+Include a persistent disclaimer on sensitive screens:
+PediScreen AI supports developmental screening only and does not make diagnoses. Always discuss concerns with a licensed health professional.
+Ensure the Edge AI summarization (even in MockRuntime) uses safe wording.
+
+11. Replit & Expo Configuration
+package.json scripts:
+json
+{
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  }
+}
+
+Minimize native dependencies for Replit; treat heavy model/runtime integrations as optional (guarded by feature flags).
+Provide a README_mobile_edge.md describing:
+How to run in Replit.
+How to switch between MockRuntime and real LocalModelRuntime.
+How to demo edge AI (pressing “Run screening on this device” and showing offline behavior).
+
+12. Implementation Expectations
+Using this prompt, the coding assistant should:
+Scaffold a full React Native (Expo, TypeScript) project with the described structure and screens.
+Implement:
+EdgeAiEngine + LocalModelRuntime interface + MockRuntime.
+ScreeningSessionContext and EdgeStatusContext.
+UI components for:
+Welcome, role selection, home, screening flow, results, timeline, settings, edge diagnostics.
+A basic visual design system (colors, typography, spacing, glassy cards).
+Wire up:
+Mock children and questions.
+Full screening flow that works offline and uses MockRuntime to simulate on‑device inference.
+Annotate all model integration points with clear TODO comments for:
+Loading quantized HAI‑DEF / MedGemma‑derived model.
+Running inference via TFLite/MediaPipe/react-native-ai.
+Persisting model files on device.
+The result is a self‑contained, demo‑ready edge AI pediatric screening mobile app that can run in Replit + Expo, demonstrating the spirit of The Edge AI Prize by bringing MedGemma‑style reasoning out of the cloud and onto the device.
+

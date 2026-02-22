@@ -17,6 +17,7 @@ import { RashAnalysis } from "./screens/RashAnalysis";
 import { GrowthTracker } from "./screens/GrowthTracker";
 import { QRPatientCard } from "./screens/QRPatientCard";
 import { QRScannerScreen } from "./screens/QRScannerScreen";
+import { EdgeDiagnosticsScreen } from "./screens/EdgeDiagnosticsScreen";
 
 export const router = createBrowserRouter([
   {
@@ -90,5 +91,9 @@ export const router = createBrowserRouter([
   {
     path: "/qr-scanner",
     Component: QRScannerScreen,
+  },
+  {
+    path: "/edge-diagnostics",
+    Component: EdgeDiagnosticsScreen,
   },
 ]);

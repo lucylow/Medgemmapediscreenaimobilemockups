@@ -4,20 +4,24 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { ArrowLeft, Check, AlertCircle, Minus, Send, Edit3 } from "lucide-react";
+import { useEdgeStatus } from "../edge/EdgeStatusContext";
+import { ArrowLeft, Check, AlertCircle, Minus, Send, Edit3, Cpu } from "lucide-react";
 import {
   DOMAIN_LABELS,
   DOMAIN_ICONS,
   DOMAIN_COLORS,
+  DomainRisk,
 } from "../data/types";
 
 export function ScreeningSummary() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const { currentSession, setParentConcerns, submitSession, getChild } = useApp();
+  const { engine, ready: edgeReady } = useEdgeStatus();
   const [concerns, setConcerns] = useState(currentSession?.parentConcernsText || "");
   const [submitting, setSubmitting] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [edgeMode, setEdgeMode] = useState(true);
 
   if (!currentSession) {
     return (
@@ -43,10 +47,42 @@ export function ScreeningSummary() {
   const handleSubmit = async () => {
     setParentConcerns(concerns);
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    const result = submitSession();
-    if (result) {
-      navigate(`/screening-results/${result.sessionId}`);
+
+    if (edgeMode && engine && edgeReady && currentSession) {
+      try {
+        const inference = await engine.runScreeningInference(currentSession);
+        const summaryResult = await engine.generateSummaries(currentSession, inference);
+
+        const mappedDomainRisks: DomainRisk[] = inference.domainRisks.map((dr) => ({
+          domain: dr.domain,
+          risk: dr.risk,
+          score: Math.round(dr.score * 10),
+          maxScore: 10,
+          summary: DOMAIN_LABELS[dr.domain] + ": " + (dr.risk === "on_track" ? "developing well" : "may benefit from extra support"),
+        }));
+
+        const result = submitSession({
+          domainRisks: mappedDomainRisks,
+          overallRisk: inference.overallRisk,
+          parentSummary: summaryResult.parentSummary,
+          clinicianSummary: summaryResult.clinicianSummary,
+          nextSteps: summaryResult.nextSteps,
+        });
+        if (result) {
+          navigate(`/screening-results/${result.sessionId}`);
+        }
+      } catch {
+        const result = submitSession();
+        if (result) {
+          navigate(`/screening-results/${result.sessionId}`);
+        }
+      }
+    } else {
+      await new Promise((r) => setTimeout(r, 1500));
+      const result = submitSession();
+      if (result) {
+        navigate(`/screening-results/${result.sessionId}`);
+      }
     }
   };
 
@@ -150,6 +186,26 @@ export function ScreeningSummary() {
               className="w-full bg-[#F8F9FA] border-2 border-gray-200 rounded-2xl p-4 text-[#1A1A1A] placeholder-[#999999] focus:border-[#1A73E8] focus:outline-none resize-none"
             />
           </div>
+
+          {edgeReady && (
+            <div className="bg-[#E8F0FE] rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Cpu className="w-5 h-5 text-[#1A73E8]" />
+                  <span className="text-sm font-semibold text-[#1A73E8]">Edge AI Inference</span>
+                </div>
+                <button
+                  onClick={() => setEdgeMode(!edgeMode)}
+                  className={`w-11 h-6 rounded-full relative transition-colors ${edgeMode ? "bg-[#1A73E8]" : "bg-gray-300"}`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${edgeMode ? "left-[22px]" : "left-0.5"}`} />
+                </button>
+              </div>
+              <p className="text-xs text-[#666666] mt-1">
+                {edgeMode ? "Screening will run on-device using Edge AI" : "Using standard analysis"}
+              </p>
+            </div>
+          )}
 
           <div className="bg-[#FFF3E0] rounded-2xl p-4 space-y-3">
             <p className="text-sm text-[#E65100]">

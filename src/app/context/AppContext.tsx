@@ -7,6 +7,8 @@ import {
   DomainType,
   AnswerValue,
   DomainAnswer,
+  DomainRisk,
+  RiskLevel,
 } from "../data/types";
 import { getQuestionsForAge } from "../data/questions";
 import { evaluateScreening } from "../data/screeningEngine";
@@ -31,7 +33,13 @@ interface AppContextType extends AppState {
   setSelectedDomains: (domains: DomainType[]) => void;
   setAnswer: (domain: DomainType, questionId: string, answer: AnswerValue) => void;
   setParentConcerns: (text: string) => void;
-  submitSession: () => ScreeningResult | null;
+  submitSession: (edgeOverride?: {
+    domainRisks: DomainRisk[];
+    overallRisk: RiskLevel;
+    parentSummary: string;
+    clinicianSummary: string;
+    nextSteps: string[];
+  }) => ScreeningResult | null;
   cancelSession: () => void;
   getSessionsForChild: (childId: string) => ScreeningSession[];
   getResultsForChild: (childId: string) => ScreeningResult[];
@@ -168,14 +176,33 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
     });
   }, []);
 
-  const submitSession = useCallback((): ScreeningResult | null => {
+  const submitSession = useCallback((edgeOverride?: {
+    domainRisks: DomainRisk[];
+    overallRisk: RiskLevel;
+    parentSummary: string;
+    clinicianSummary: string;
+    nextSteps: string[];
+  }): ScreeningResult | null => {
     const session = state.currentSession;
     if (!session) return null;
 
     const submittedSession: ScreeningSession = { ...session, status: "submitted" };
     storage.saveSession(submittedSession);
 
-    const result = evaluateScreening(submittedSession);
+    let result = evaluateScreening(submittedSession);
+
+    if (edgeOverride) {
+      result = {
+        ...result,
+        domainRisks: edgeOverride.domainRisks,
+        overallRisk: edgeOverride.overallRisk,
+        parentSummary: edgeOverride.parentSummary,
+        clinicianSummary: edgeOverride.clinicianSummary,
+        nextSteps: edgeOverride.nextSteps,
+        modelProvenance: { modelId: "medgemma-pediscreen-edge", version: "1.0.0-demo" },
+      };
+    }
+
     storage.saveResult(result);
 
     const isHighRisk = result.overallRisk === "refer" || result.overallRisk === "discuss";

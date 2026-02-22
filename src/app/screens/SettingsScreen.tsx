@@ -4,7 +4,7 @@ import { MobileContainer } from "../components/MobileContainer";
 import { TabBar } from "../components/TabBar";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Trash2, ToggleLeft, ToggleRight, Info, Server, Shield, Lock, Bell, Fingerprint, Smartphone, CloudOff, Wifi, Database, HardDrive, RefreshCw } from "lucide-react";
+import { Trash2, ToggleLeft, ToggleRight, Info, Server, Shield, Lock, Bell, Fingerprint, Smartphone, CloudOff, Wifi, Database, HardDrive, RefreshCw, Cpu, ChevronRight } from "lucide-react";
 import { isPinEnabled, setPinEnabled, PinLock as PinLockScreen } from "./PinLock";
 import { requestNotificationPermission, isNotificationSupported, getNotificationPermission } from "../platform/notifications";
 import { hapticImpact, hapticNotification } from "../platform/haptics";
@@ -193,6 +193,23 @@ export function SettingsScreen() {
               </div>
             </div>
           )}
+
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Edge AI</h2>
+            <button
+              onClick={() => navigate("/edge-diagnostics")}
+              className="w-full bg-white border-2 border-gray-100 rounded-2xl p-4 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <Cpu className="w-5 h-5 text-[#1A73E8]" />
+                <div className="text-left">
+                  <p className="font-semibold text-[#1A1A1A]">Edge AI Diagnostics</p>
+                  <p className="text-xs text-[#666666]">View on-device model status & benchmarks</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#999999]" />
+            </button>
+          </div>
 
           <div className="space-y-3">
             <h2 className="text-sm font-bold text-[#999999] uppercase tracking-wider">Data</h2>
