@@ -2,7 +2,7 @@ import { ScreeningSession } from "../data/types";
 import { LocalInferenceResult, LocalSummaryResult, ModelProvenance } from "./inferenceSchemas";
 import { encodeFeaturesForModel, featuresToFloat32Array } from "./featureEncoding";
 import { LocalModelRuntime, MedGemmaRuntimeCapabilities } from "./LocalModelRuntime";
-import type { VocalAnalysisInput, VocalAnalysisResult, PoseEstimationInput, PoseEstimationResult, FusionInput, FusionResult } from "./medgemmaSchemas";
+import type { VocalAnalysisInput, VocalAnalysisResult, PoseEstimationInput, PoseEstimationResult, FusionInput, FusionResult, XrayAnalysisInput, XrayAnalysisResult } from "./medgemmaSchemas";
 
 export class EdgeAiEngine {
   private runtime: LocalModelRuntime;
@@ -14,6 +14,7 @@ export class EdgeAiEngine {
   private _vocalCount = 0;
   private _poseCount = 0;
   private _fusionCount = 0;
+  private _xrayCount = 0;
 
   constructor(runtime: LocalModelRuntime) {
     this.runtime = runtime;
@@ -58,8 +59,12 @@ export class EdgeAiEngine {
     return this._fusionCount;
   }
 
+  get xrayCount(): number {
+    return this._xrayCount;
+  }
+
   get totalInferenceCount(): number {
-    return this._inferenceCount + this._vocalCount + this._poseCount + this._fusionCount;
+    return this._inferenceCount + this._vocalCount + this._poseCount + this._fusionCount + this._xrayCount;
   }
 
   getCapabilities(): MedGemmaRuntimeCapabilities {
@@ -127,6 +132,15 @@ export class EdgeAiEngine {
 
     const result = await this.runtime.runFusion(input);
     this._fusionCount++;
+    return result;
+  }
+
+  async runXrayAnalysis(input: XrayAnalysisInput): Promise<XrayAnalysisResult | null> {
+    if (!this._ready) await this.warmup();
+    if (!this.runtime.runXrayAnalysis) return null;
+
+    const result = await this.runtime.runXrayAnalysis(input);
+    this._xrayCount++;
     return result;
   }
 }

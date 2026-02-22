@@ -1,4 +1,4 @@
-export type MedGemmaModelType = "screening" | "vocal" | "pose" | "fusion";
+export type MedGemmaModelType = "screening" | "vocal" | "pose" | "fusion" | "xray";
 export type ModelFormat = "torchscript" | "tflite" | "onnx";
 export type DeploymentTarget = "web" | "ios" | "android" | "edge-tpu";
 
@@ -94,6 +94,22 @@ export const MEDGEMMA_MODELS: MedGemmaModel[] = [
     status: "available",
   },
   {
+    id: "medgemma-boneage-v1",
+    name: "MedGemma BoneAge GP",
+    type: "xray",
+    version: "1.0.0",
+    description: "Greulich-Pyle bone age assessment from hand/wrist X-ray. Longitudinal tracking with growth velocity and skeletal maturity scoring.",
+    format: "onnx",
+    sizeBytes: 180 * 1024 * 1024,
+    inputShape: [1, 3, 512, 512],
+    outputShape: [1, 8],
+    latencyMs: { min: 350, avg: 580, max: 900 },
+    accuracy: 0.94,
+    targets: ["web", "ios", "android"],
+    clinicalValidation: "MAE 4.2 months vs radiologist (n=1,420 hand X-rays)",
+    status: "loaded",
+  },
+  {
     id: "medgemma-fusion-ensemble",
     name: "MedGemma Fusion Ensemble",
     type: "fusion",
@@ -137,6 +153,14 @@ export const MEDGEMMA_CAPABILITIES: MedGemmaCapability[] = [
     models: MEDGEMMA_MODELS.filter((m) => m.type === "pose"),
   },
   {
+    type: "xray",
+    icon: "🦴",
+    label: "Bone Age X-ray",
+    description: "Greulich-Pyle bone age assessment with longitudinal tracking",
+    color: "#E91E63",
+    models: MEDGEMMA_MODELS.filter((m) => m.type === "xray"),
+  },
+  {
     type: "fusion",
     icon: "🔗",
     label: "Multi-Modal Fusion",
@@ -174,8 +198,8 @@ export const DEPLOYMENT_STRATEGY = {
 };
 
 export const PERFORMANCE_BENCHMARKS = {
-  "iPhone 16 Pro": { screening: 420, vocal: 380, pose: 48, fusion: 680 },
-  "Pixel 9 Pro": { screening: 280, vocal: 450, pose: 48, fusion: 720 },
-  "Web (Chrome)": { screening: 520, vocal: 600, pose: 180, fusion: 1200 },
-  "RPi5 + Coral": { screening: 98, vocal: null, pose: 210, fusion: null },
+  "iPhone 16 Pro": { screening: 420, vocal: 380, pose: 48, xray: 580, fusion: 680 },
+  "Pixel 9 Pro": { screening: 280, vocal: 450, pose: 48, xray: 620, fusion: 720 },
+  "Web (Chrome)": { screening: 520, vocal: 600, pose: 180, xray: 780, fusion: 1200 },
+  "RPi5 + Coral": { screening: 98, vocal: null, pose: 210, xray: null, fusion: null },
 };

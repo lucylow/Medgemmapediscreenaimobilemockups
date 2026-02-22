@@ -42,6 +42,10 @@ The application is built with React 18 and Vite 6, utilizing Tailwind CSS v4 for
 - **Integration**: Edge AI toggle on ScreeningSummary, results persisted through submitSession() override
 - **Diagnostics**: /edge-diagnostics route shows model info, benchmark latency, runtime metrics
 - **Provenance**: Edge results tagged with "medgemma-pediscreen-edge" model ID
+- **Multi-Modal Models**: Vocal analysis (cry classification, babbling milestones), Pose estimation (BIMS scoring, motor milestones), X-ray bone age (Greulich-Pyle, skeletal landmarks)
+- **MedGemma Registry**: 6 model variants (PediScreen 2B, Vocal LoRA, MoveNet Infant/Child, BoneAge GP, Fusion Ensemble)
+- **X-ray Analysis**: Bone age assessment with Z-score, percentile, growth velocity, fracture risk, ICD-10 codes, longitudinal timeline
+- **Models Dashboard**: /medgemma-models shows full model registry with benchmarks and deployment strategy
 
 ## External Dependencies
 - **UI Libraries**: Radix UI, Lucide icons, Recharts, Framer Motion

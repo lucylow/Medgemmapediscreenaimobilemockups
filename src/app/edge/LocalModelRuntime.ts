@@ -1,5 +1,5 @@
 import { LocalInferenceResult, LocalSummaryResult, SummaryInput } from "./inferenceSchemas";
-import type { VocalAnalysisInput, VocalAnalysisResult, PoseEstimationInput, PoseEstimationResult, FusionInput, FusionResult } from "./medgemmaSchemas";
+import type { VocalAnalysisInput, VocalAnalysisResult, PoseEstimationInput, PoseEstimationResult, FusionInput, FusionResult, XrayAnalysisInput, XrayAnalysisResult } from "./medgemmaSchemas";
 
 export interface LocalModelRuntime {
   initialize(): Promise<void>;
@@ -10,6 +10,7 @@ export interface LocalModelRuntime {
   runVocalAnalysis?(input: VocalAnalysisInput): Promise<VocalAnalysisResult>;
   runPoseEstimation?(input: PoseEstimationInput): Promise<PoseEstimationResult>;
   runFusion?(input: FusionInput): Promise<FusionResult>;
+  runXrayAnalysis?(input: XrayAnalysisInput): Promise<XrayAnalysisResult>;
   getCapabilities(): MedGemmaRuntimeCapabilities;
 }
 
@@ -18,4 +19,5 @@ export interface MedGemmaRuntimeCapabilities {
   vocal: boolean;
   pose: boolean;
   fusion: boolean;
+  xray: boolean;
 }

@@ -22,6 +22,7 @@ import { QRPatientCard } from "./screens/QRPatientCard";
 import { QRScannerScreen } from "./screens/QRScannerScreen";
 import { EdgeDiagnosticsScreen } from "./screens/EdgeDiagnosticsScreen";
 import { MedGemmaModelsScreen } from "./screens/MedGemmaModelsScreen";
+import { XrayAnalysisScreen } from "./screens/XrayAnalysisScreen";
 
 export const router = createBrowserRouter([
   {
@@ -115,5 +116,9 @@ export const router = createBrowserRouter([
   {
     path: "/medgemma-models",
     Component: MedGemmaModelsScreen,
+  },
+  {
+    path: "/xray-analysis",
+    Component: XrayAnalysisScreen,
   },
 ]);

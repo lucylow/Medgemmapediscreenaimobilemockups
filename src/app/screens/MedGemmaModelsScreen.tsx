@@ -162,6 +162,10 @@ export function MedGemmaModelsScreen() {
         await engine.runPoseEstimation({
           frameData: null, width: 192, height: 192, childAgeMonths: 12,
         });
+      } else if (model.type === "xray") {
+        await engine.runXrayAnalysis({
+          imageData: null, childAgeMonths: 24,
+        });
       } else if (model.type === "fusion") {
         await engine.runFusion({ childAgeMonths: 24 });
       }
@@ -212,11 +216,11 @@ export function MedGemmaModelsScreen() {
           </div>
 
           {capabilities && (
-            <div className="grid grid-cols-4 gap-2">
-              {(["screening", "vocal", "pose", "fusion"] as const).map((cap) => {
+            <div className="grid grid-cols-5 gap-1.5">
+              {(["screening", "vocal", "pose", "xray", "fusion"] as const).map((cap) => {
                 const active = capabilities[cap];
-                const labels = { screening: "Screen", vocal: "Voice", pose: "Pose", fusion: "Fuse" };
-                const icons = { screening: "🧠", vocal: "🎤", pose: "🏃", fusion: "🔗" };
+                const labels = { screening: "Screen", vocal: "Voice", pose: "Pose", xray: "X-ray", fusion: "Fuse" };
+                const icons = { screening: "🧠", vocal: "🎤", pose: "🏃", xray: "🦴", fusion: "🔗" };
                 return (
                   <div
                     key={cap}
@@ -285,6 +289,7 @@ export function MedGemmaModelsScreen() {
                     <th className="text-right py-1 px-1">Screen</th>
                     <th className="text-right py-1 px-1">Vocal</th>
                     <th className="text-right py-1 px-1">Pose</th>
+                    <th className="text-right py-1 px-1">X-ray</th>
                     <th className="text-right py-1 pl-1">Fusion</th>
                   </tr>
                 </thead>
@@ -295,6 +300,7 @@ export function MedGemmaModelsScreen() {
                       <td className="py-1.5 px-1 text-right text-[#666666]">{benchmarks.screening}ms</td>
                       <td className="py-1.5 px-1 text-right text-[#666666]">{benchmarks.vocal ?? "—"}ms</td>
                       <td className="py-1.5 px-1 text-right text-[#666666]">{benchmarks.pose}ms</td>
+                      <td className="py-1.5 px-1 text-right text-[#666666]">{"xray" in benchmarks ? (benchmarks as Record<string, number | null>).xray ?? "—" : "—"}ms</td>
                       <td className="py-1.5 pl-1 text-right text-[#666666]">{benchmarks.fusion ?? "—"}ms</td>
                     </tr>
                   ))}

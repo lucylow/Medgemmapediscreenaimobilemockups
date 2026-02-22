@@ -111,6 +111,47 @@ export const INFANT_KEYPOINT_WEIGHTS: Record<string, number> = {
   right_ankle: 0.5,
 };
 
+export interface XrayAnalysisInput {
+  imageData: string | null;
+  childAgeMonths: number;
+  studyId?: string;
+}
+
+export interface XrayLandmark {
+  name: string;
+  present: boolean;
+  ossification: "none" | "partial" | "complete";
+  confidence: number;
+}
+
+export interface XrayAnalysisResult {
+  sessionId: string;
+  boneAgeMonths: number;
+  chronologicalAgeMonths: number;
+  boneAgeZScore: number;
+  boneAgePercentile: number;
+  growthVelocityCmYear: number;
+  fractureRisk: "none" | "low" | "moderate" | "high";
+  skeletalMaturity: "delayed" | "normal" | "advanced";
+  confidence: number;
+  keyLandmarks: XrayLandmark[];
+  icd10Codes: string[];
+  recommendations: string[];
+  inferenceTimeMs: number;
+  parentSummary: string;
+  clinicalNotes: string;
+}
+
+export interface XraySeriesEntry {
+  id: string;
+  timestamp: number;
+  boneAgeMonths: number;
+  chronologicalAgeMonths: number;
+  boneAgeZScore: number;
+  skeletalMaturity: "delayed" | "normal" | "advanced";
+  growthVelocityCmYear: number;
+}
+
 export function getMotorMilestonesForAge(ageMonths: number): string[] {
   if (ageMonths < 4) return ["Head lift", "Symmetrical limb movement", "Tummy time tolerance"];
   if (ageMonths < 7) return ["Rolling over", "Supported sitting", "Reaching for objects", "Head control"];

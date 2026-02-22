@@ -17,6 +17,9 @@ import type {
   MotorMilestone,
   FusionInput,
   FusionResult,
+  XrayAnalysisInput,
+  XrayAnalysisResult,
+  XrayLandmark,
 } from "./medgemmaSchemas";
 import { INFANT_KEYPOINTS, getMotorMilestonesForAge } from "./medgemmaSchemas";
 
@@ -41,7 +44,7 @@ export class MockRuntime implements LocalModelRuntime {
   }
 
   getCapabilities(): MedGemmaRuntimeCapabilities {
-    return { screening: true, vocal: true, pose: true, fusion: true };
+    return { screening: true, vocal: true, pose: true, fusion: true, xray: true };
   }
 
   async runRiskModel(features: Float32Array): Promise<LocalInferenceResult> {
@@ -246,6 +249,84 @@ export class MockRuntime implements LocalModelRuntime {
       fusedScore,
       recommendation: recommendations[overallRisk],
       inferenceTimeMs: Math.round(performance.now() - start),
+    };
+  }
+
+  async runXrayAnalysis(input: XrayAnalysisInput): Promise<XrayAnalysisResult> {
+    const start = performance.now();
+    await new Promise((res) => setTimeout(res, 500 + Math.random() * 300));
+
+    const chronoAge = input.childAgeMonths;
+    const boneAgeOffset = (Math.random() - 0.5) * 8;
+    const boneAgeMonths = Math.max(1, chronoAge + boneAgeOffset);
+    const boneAgeZScore = (boneAgeMonths - chronoAge) / 4;
+
+    const zAbs = Math.abs(boneAgeZScore);
+    const percentile = boneAgeZScore >= 0
+      ? Math.min(99, Math.round(50 + (boneAgeZScore / 3) * 49))
+      : Math.max(1, Math.round(50 + (boneAgeZScore / 3) * 49));
+
+    const skeletalMaturity: XrayAnalysisResult["skeletalMaturity"] =
+      boneAgeZScore < -1.5 ? "delayed" : boneAgeZScore > 1.5 ? "advanced" : "normal";
+
+    const fractureRisk: XrayAnalysisResult["fractureRisk"] =
+      zAbs > 2.5 ? "high" : zAbs > 1.5 ? "moderate" : zAbs > 0.8 ? "low" : "none";
+
+    const growthVelocityCmYear = chronoAge < 12 ? 20 + Math.random() * 5
+      : chronoAge < 36 ? 8 + Math.random() * 4
+      : 5 + Math.random() * 3;
+
+    const ossificationStates: XrayLandmark["ossification"][] = ["none", "partial", "complete"];
+    const keyLandmarks: XrayLandmark[] = [
+      { name: "Distal Radius", present: chronoAge > 6, ossification: chronoAge > 36 ? "complete" : chronoAge > 12 ? "partial" : "none", confidence: 0.85 + Math.random() * 0.1 },
+      { name: "Proximal Phalanx", present: chronoAge > 3, ossification: chronoAge > 24 ? "complete" : chronoAge > 8 ? "partial" : "none", confidence: 0.88 + Math.random() * 0.08 },
+      { name: "Metacarpals (5)", present: true, ossification: chronoAge > 48 ? "complete" : chronoAge > 18 ? "partial" : "none", confidence: 0.9 + Math.random() * 0.06 },
+      { name: "Capitate", present: chronoAge > 2, ossification: chronoAge > 30 ? "complete" : chronoAge > 6 ? "partial" : "none", confidence: 0.82 + Math.random() * 0.12 },
+      { name: "Hamate", present: chronoAge > 3, ossification: chronoAge > 36 ? "complete" : chronoAge > 8 ? "partial" : "none", confidence: 0.8 + Math.random() * 0.15 },
+    ];
+
+    const icd10Codes: string[] = [];
+    if (skeletalMaturity === "delayed") icd10Codes.push("M89.30", "R62.51");
+    if (skeletalMaturity === "advanced") icd10Codes.push("M89.39", "E22.0");
+    if (fractureRisk === "high" || fractureRisk === "moderate") icd10Codes.push("M85.80");
+
+    const recommendations: string[] = [];
+    if (skeletalMaturity === "delayed") {
+      recommendations.push("Repeat hand/wrist X-ray in 6 months");
+      recommendations.push("Consider endocrine evaluation if Z-score persists below -2.0");
+      recommendations.push("Monitor growth velocity (<4cm/year = abnormal for age)");
+    } else if (skeletalMaturity === "advanced") {
+      recommendations.push("Evaluate for precocious puberty if bone age > chronological age by 2+ years");
+      recommendations.push("Consider endocrine referral for further assessment");
+    } else {
+      recommendations.push("Bone age within normal limits — routine follow-up recommended");
+      recommendations.push("Repeat screening at next well-child visit or in 12 months");
+    }
+
+    const parentSummary = skeletalMaturity === "normal"
+      ? `Your ${chronoAge}-month-old's bone development appears age-appropriate. The bone age (${boneAgeMonths.toFixed(1)} months) closely matches their actual age. No concerns at this time.`
+      : skeletalMaturity === "delayed"
+        ? `Your ${chronoAge}-month-old's bone development is slightly behind their actual age. This is common and often resolves on its own. Your doctor may recommend follow-up in 6 months.`
+        : `Your ${chronoAge}-month-old's bone development is ahead of their actual age. This can be normal but may warrant a follow-up with your doctor to ensure healthy growth.`;
+
+    const clinicalNotes = `Bone Age Assessment (Greulich-Pyle)\nChronological: ${chronoAge} months | Bone Age: ${boneAgeMonths.toFixed(1)} months\nZ-Score: ${boneAgeZScore.toFixed(2)} | Percentile: ${percentile}th\nSkeletal Maturity: ${skeletalMaturity.toUpperCase()}\nFracture Risk: ${fractureRisk.toUpperCase()}\nGrowth Velocity: ${growthVelocityCmYear.toFixed(1)} cm/year\nICD-10: ${icd10Codes.join(", ") || "None"}\nModel: medgemma-boneage-v1 (Greulich-Pyle standard)`;
+
+    return {
+      sessionId: input.studyId || `xray_${Date.now()}`,
+      boneAgeMonths,
+      chronologicalAgeMonths: chronoAge,
+      boneAgeZScore,
+      boneAgePercentile: percentile,
+      growthVelocityCmYear,
+      fractureRisk,
+      skeletalMaturity,
+      confidence: 0.85 + Math.random() * 0.1,
+      keyLandmarks,
+      icd10Codes,
+      recommendations,
+      inferenceTimeMs: Math.round(performance.now() - start),
+      parentSummary,
+      clinicalNotes,
     };
   }
 
