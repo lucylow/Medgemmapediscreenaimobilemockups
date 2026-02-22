@@ -1,220 +1,55 @@
 # MedGemma PediScreen AI
 
 ## Overview
-A React-based pediatric developmental screening application for the MedGemma Impact Challenge (Kaggle). Supports parents, community health workers (CHWs), and clinicians with guided developmental screening for children 0-5 years. Features native-like mobile platform APIs including haptic feedback, camera integration, PIN lock, offline support, and PWA installability.
+MedGemma PediScreen AI is a React-based pediatric developmental screening application designed for parents, community health workers (CHWs), and clinicians. It provides guided developmental screening for children aged 0-5 years, incorporating AI-assisted risk assessment and native-like mobile platform APIs. The project aims to improve early identification of developmental delays, streamline screening workflows, and provide actionable insights for interventions, supporting global health initiatives and reducing healthcare burdens.
 
-## Key Features
-- **Role-based entry**: Parent/Caregiver, CHW, or Clinician demo mode
-- **Child management**: Add/edit/delete child profiles with localStorage persistence + camera photo capture
-- **Screening flow**: ASQ-3 inspired questions across 5 developmental domains (Communication, Gross Motor, Fine Motor, Personal-Social, Problem Solving) with age-appropriate question banks (0-11mo, 12-17mo, 18-23mo, 24-35mo, 36-60mo)
-- **Domain selection**: Choose which developmental areas to screen before starting
-- **AI-assisted results**: Screening engine evaluates answers and generates risk levels (On Track, Monitor, Discuss, Refer) with parent-friendly summaries and clinician drafts
-- **Expandable clinician section**: Results include collapsible "For Your Clinician" with AI-generated draft and safety validation
-- **Consent gating**: Screening submission requires explicit consent checkbox
-- **Timeline/history**: View past screenings per child with risk trend chart
-- **Clinician review demo**: Shows AI draft vs clinician-approved text (HITL pipeline)
-- **Demo cases**: 4 preconfigured risk scenarios for instant demonstration
-- **Settings**: Mock API toggle, clear data, privacy info, PIN lock, notifications, app version
-- **Symptom Checker**: Standalone rapid milestone assessment with age selector, domain grid, checklist, MedGemma analysis with ASQ-3 scores, confidence %, ICD-10 codes, domain breakdown bars, and expandable findings/recommendations
-- **Rash Analysis**: AI-powered dermatological skin screening with live camera, real-time quality metrics, MedGemma analysis for atopic dermatitis/viral exanthem/bacterial infection/contact dermatitis, ICD-10 codes, treatment urgency, severity assessment, and evidence-based recommendations
-- **Bottom tab navigation**: Home, Children, Check, Demo, Settings tabs with haptic feedback
-- **Safety**: Disclaimer footers, non-diagnostic language throughout, safety flags on results
+## User Preferences
+No explicit user preferences were provided in the original `replit.md` file. The agent should infer preferences based on the project's goals and structure, prioritizing clarity, modularity, and maintainability.
 
-## Platform APIs (Mobile Features)
-- **Haptic feedback**: Web Vibration API for risk-level-specific feedback, button presses, swipe gestures, and screening submissions
-- **Camera integration**: getUserMedia API for child profile photos with live preview and capture
-- **PIN lock**: 4-digit PIN screen to protect health data (biometric equivalent for web)
-- **Offline-first architecture**: IndexedDB sync queue, Service Worker asset caching, 72hr+ offline capacity
-- **Offline banner**: Real-time online/offline detection with sync progress bar and pending count
-- **Smart sync engine**: Priority-based sync queue with exponential backoff retry (5s→30s→5m→1h→daily)
-- **Impact metrics**: IndexedDB-tracked screening counts, early identification stats, estimated savings
-- **Storage monitoring**: Browser Storage API quota tracking with visual usage bar
-- **Swipe gestures**: Touch swipe navigation between screening questions
-- **PWA support**: Web app manifest + enhanced service worker (static + dynamic caching strategies)
-- **Browser notifications**: Notification API for screening result alerts and follow-up reminders
-- **Enhanced touch targets**: 60px+ minimum for CHW field use with gloved hands
-- **Safe area support**: iOS safe area insets for notch/home indicator
+## System Architecture
+The application is built with React 18 and Vite 6, utilizing Tailwind CSS v4 for styling, Radix UI for UI components, and react-router v7 for navigation. State management is handled through React Context, localStorage, and IndexedDB for offline persistence.
 
-## Project Architecture
-- **Framework**: React 18 + Vite 6
-- **Styling**: Tailwind CSS v4 with @tailwindcss/vite plugin
+**Key Architectural Decisions:**
+- **Offline-First Architecture**: Implemented with IndexedDB for sync queues, impact metrics, and a Service Worker for asset caching, ensuring functionality even without internet connectivity. A Smart Sync Engine with priority-based queuing and exponential backoff manages data synchronization.
+- **Mobile-First Design**: Incorporates platform APIs like Web Vibration API for haptic feedback, `getUserMedia` for camera integration, a 4-digit PIN lock for data security, and PWA support for installability. UI/UX elements, such as 60px+ touch targets and safe area support, are optimized for mobile use.
+- **AI Integration**: Features AI-assisted screening results with risk level generation (On Track, Monitor, Discuss, Refer), clinician draft generation, and safety validation. Specialized AI features include a Symptom Checker for rapid milestone assessment and an AI-powered Rash Analysis tool for dermatological screening.
+- **Modular Structure**: The codebase is organized into logical directories (e.g., `app/`, `offline/`, `platform/`, `edge/`, `data/`, `screens/`) to enhance maintainability and scalability.
+- **Data Management**: Child profiles, screening data, and growth measurements are persisted locally using localStorage and IndexedDB.
+- **Security**: PIN lock functionality protects sensitive health data, and explicit consent is required for screening submissions.
+- **Extensible Features**: Designed to easily integrate new features like Growth Tracking with WHO standards and QR code functionalities for patient identification and data sharing.
+
+**UI/UX Decisions:**
+- Intuitive bottom tab navigation for core functionalities (Home, Children, Check, Demo, Settings).
+- Role-based entry for tailored user experiences (Parent/Caregiver, CHW, Clinician).
+- Visual feedback mechanisms include risk banners, progress bars, and haptic feedback.
+- Safety disclaimers and non-diagnostic language are consistently used.
+
+**Feature Specifications:**
+- **Child Management**: CRUD operations for child profiles with camera photo capture.
+- **Developmental Screening**: ASQ-3 inspired questions across 5 domains and age groups (0-60 months).
+- **AI-assisted Results**: Generates risk levels, summaries, and clinician drafts.
+- **Symptom Checker**: Rapid milestone assessment with age selector, domain grid, and AI analysis.
+- **Rash Analysis**: AI-powered dermatological skin screening with live camera, quality metrics, and diagnosis.
+- **Growth Tracker**: WHO growth standard tracking with Z-score calculation and interactive charts.
+- **QR Code Functionality**: Generation of patient ID cards and screening result QR codes, and a scanner for data lookup.
+- **Settings**: Configuration options including mock API toggle, data clearing, privacy, PIN lock, and notifications.
+
+## Edge AI Architecture
+- **EdgeAiEngine**: Orchestrates on-device inference and summary generation via pluggable LocalModelRuntime interface
+- **MockRuntime**: Demo runtime with simulated 300-600ms latency, produces realistic risk classifications
+- **Feature Encoding**: Converts ScreeningSession answers to normalized float vectors for model input
+- **EdgeStatusContext**: React context providing model readiness state, warmup status, inference count
+- **Integration**: Edge AI toggle on ScreeningSummary, results persisted through submitSession() override
+- **Diagnostics**: /edge-diagnostics route shows model info, benchmark latency, runtime metrics
+- **Provenance**: Edge results tagged with "medgemma-pediscreen-edge" model ID
+
+## External Dependencies
 - **UI Libraries**: Radix UI, Lucide icons, Recharts, Framer Motion
-- **Routing**: react-router v7
-- **State**: React Context (AppContext) + localStorage + IndexedDB (offline sync)
-- **Offline**: OfflineContext + SyncEngine + OfflineDB (IndexedDB sync queue, impact metrics)
 - **Package Manager**: pnpm
-- **Build Output**: `dist/`
-- **PWA**: manifest.json + sw.js service worker (static + dynamic cache)
-
-## Project Structure
-```
-src/
-  main.tsx              - Entry point
-  app/
-    App.tsx             - Root component with AppProvider + PIN lock + offline banner
-    routes.tsx          - Route definitions
-    context/
-      AppContext.tsx     - Global state management
-    offline/            - Offline-first engine
-      OfflineDB.ts      - IndexedDB wrapper (sync queue, impact metrics, storage)
-      SyncEngine.ts     - Smart sync with priority queue + exponential backoff
-      OfflineContext.tsx - React context for offline state + sync status
-    platform/           - Native-like platform APIs
-      haptics.ts        - Web Vibration API wrapper (risk-level haptics, impact, selection)
-      useCamera.ts      - getUserMedia hook for photo capture
-      useOnlineStatus.ts - Online/offline status hook
-      useSwipeGesture.ts - Touch swipe gesture hook
-      notifications.ts  - Browser Notification API (alerts, reminders)
-    components/
-      MobileContainer   - Phone-frame wrapper
-      PrimaryButton     - Reusable button with haptic feedback
-      RiskBanner        - Risk level banner
-      DisclaimerFooter  - Safety disclaimer
-      TabBar            - Bottom tab navigation with haptics + 60px targets
-      OfflineBanner     - Connection status + sync progress indicator
-      CameraCapture     - Full-screen camera capture overlay
-      ui/               - shadcn/ui components
-    screens/
-      Welcome           - Landing with role selection
-      ChildList          - Child management list with photo support
-      AddChild           - Add child form with camera integration
-      ScreeningIntro     - Pre-screening info
-      DomainSelect       - Domain selection before questions
-      ScreeningQuestions - Question flow with swipe gestures + haptics
-      ScreeningSummary   - Review & submit with consent
-      ScreeningResults   - Results with haptic risk feedback + notifications
-      Timeline           - Screening history with trend chart
-      Dashboard          - Overview dashboard
-      ClinicianReview    - Clinician demo view
-      DemoCases          - Preset risk scenario demos
-      SymptomChecker     - Standalone rapid milestone assessment tool
-      RashAnalysis       - AI-powered dermatological skin screening with camera
-      SettingsScreen     - Settings with PIN lock, notifications, API mode
-      PinLock            - 4-digit PIN lock screen
-    data/
-      types.ts          - TypeScript interfaces
-      storage.ts        - localStorage CRUD
-      questions.ts      - ASQ-3 inspired question banks
-      screeningEngine.ts - Scoring & result generation
-      milestones.ts     - Milestone bank for symptom checker (80 items, 5 age bands, 4 domains)
-      growthStandards.ts - WHO growth standards Z-score calculator + measurement storage
-      demoData.ts       - Demo data loader
-  styles/               - CSS files
-public/
-  manifest.json         - PWA manifest
-  sw.js                 - Service worker (offline cache)
-  pwa-icon-192.png      - App icon 192x192
-  pwa-icon-512.png      - App icon 512x512
-```
-
-## Navigation Flow
-```
-[PIN Lock (if enabled)] →
-Welcome (role select) →
-  Parent/CHW → Children List → Add Child (+ camera) → Screening Intro →
-    Domain Select → Questions (swipe + haptics) → Summary (with consent) → Submit → Results (haptic + notification) → Timeline
-  Clinician → Clinician Review (demo)
-
-Tab Navigation (persistent on main screens):
-  Home (Dashboard) | Children | Check (Symptom Checker) | Demo Cases | Settings
-```
-
-## Development
-- Dev server: `npx vite --host 0.0.0.0 --port 5000`
-- Build: `npx vite build`
-- Output goes to `dist/`
-
-## Key Screens
-- GrowthTracker (`/growth-tracker`) - WHO growth standard tracking with Z-score calculator
-- QRPatientCard (`/qr-card/:childId`) - QR code patient ID card + screening result sharing
-- QRScannerScreen (`/qr-scanner`) - Camera-based QR code scanner for patient lookup
-
-## Recent Changes
-- 2026-02-21: Offline-First Architecture
-  - Enhanced Service Worker (sw.js) with static + dynamic caching strategies
-  - IndexedDB-based offline engine: OfflineDB.ts with sync queue, impact metrics, offline log
-  - Smart SyncEngine with priority-based queue (referral=1, urgent=2, monitor=3, on_track=4)
-  - Exponential backoff retry: 5s → 30s → 5min → 1hr → daily
-  - OfflineContext provider with sync state, storage metrics, impact totals
-  - Enhanced OfflineBanner: offline mode (orange), syncing progress (blue), pending count (green)
-  - Dashboard Offline Status card: local records, MB stored, pending sync, service worker status
-  - Dashboard Local Impact section: estimated savings, children screened, early identified
-  - Settings Offline & Sync section: storage bar, quota %, cached assets, sync status, SW status
-  - Impact metrics auto-tracked on screening submission (IndexedDB)
-  - Screening actions logged to IndexedDB offline log
-  - Storage API quota monitoring with visual progress bar
-  - Version bumped to 1.2.0 — Offline-First
-  - Platform capability badges updated: Offline-First, Sync Queue, IndexedDB
-- 2026-02-21: QR Code Mobile Features
-  - QR Patient Card generator at /qr-card/:childId with qrcode.react library
-  - Patient ID mode: generates scannable QR with child demographics
-  - Screening Result mode: generates QR with risk levels, domain scores, ICD-10 data
-  - QR Scanner at /qr-scanner with BarcodeDetector API + camera integration
-  - Animated scan overlay with corner brackets and sweep line
-  - Auto-detect existing children or create new records from QR data
-  - Share/Print buttons for patient cards using Web Share API
-  - QR code button on each child in Children list
-  - "Share as QR Code" button on Screening Results page
-  - Purple gradient QR Patient Scanner card on Dashboard
-  - "Scan QR" button in Children list footer
-  - Demo mode for devices without camera support
-  - New platform module: qrUtils.ts for QR encode/decode
-- 2026-02-21: Growth Tracker - WHO Growth Standards
-  - New Growth Tracker screen at /growth-tracker with real child data integration
-  - WHO growth standards data for weight, height, head circumference (0-60 months, boys & girls)
-  - LMS method Z-score calculator with percentile conversion
-  - Interactive growth charts showing patient data vs WHO reference curves (±2 SD bands)
-  - Measurement input form with weight (kg), height (cm), head circumference (cm)
-  - localStorage persistence for growth measurements per child
-  - Z-score classification: normal, monitor, concern, severe with color coding
-  - Measurement history with delete capability
-  - Green gradient quick access card on Dashboard
-  - Child selector for multi-child families
-- 2026-02-21: Rash Analysis - AI Dermatological Skin Screening
-  - New Rash Analysis screen at /rash-analysis with full camera pipeline
-  - Intro screen with condition detection list, photo tips, and safety disclaimer
-  - Live camera view with real-time quality metrics (lighting, focus, skin detection)
-  - Canvas-based image quality analysis (brightness, variance, skin pixel detection)
-  - Simulated MedGemma dermatology analysis with animated progress
-  - Diagnosis result card: condition type, confidence %, severity, BSA affected
-  - Treatment urgency stratification (immediate/urgent/routine)
-  - ICD-10 coding (L20.9 eczema, B09.8 viral, L08.9 bacterial, L25.9 contact)
-  - Expandable morphology and recommendations sections
-  - Detects: atopic dermatitis, viral exanthem, bacterial infection, contact dermatitis
-  - Quick access card on Dashboard with orange gradient
-  - Haptic feedback throughout capture and analysis flow
-- 2026-02-21: Symptom Checker - Rapid Milestone Assessment Tool
-  - New standalone Symptom Checker screen at /symptom-checker
-  - Age selector (6, 12, 18, 24, 30, 36, 48 months) with pill buttons
-  - Domain grid (All, Communication, Motor, Social, Cognitive) with color coding
-  - 80 age-appropriate milestone questions across 5 age bands and 4 domains
-  - MedGemma analysis animation with progress bar
-  - Results card: risk level badge, confidence %, ASQ-3 score, percentile, domain breakdown bars, ICD-10 codes
-  - Expandable Key Findings & Recommendations section
-  - Photo evidence capture via camera integration
-  - Added "Check" tab to bottom navigation bar
-  - Quick access card on Dashboard ("Quick Symptom Checker")
-  - New data file: milestones.ts with comprehensive milestone bank
-- 2026-02-21: Platform APIs - Mobile Feature Enhancement
-  - Added haptic feedback (Web Vibration API) across all interactions
-  - Added camera integration for child profile photos (getUserMedia)
-  - Added 4-digit PIN lock screen for health data protection
-  - Added offline status indicator banner
-  - Added swipe gesture navigation on screening questions
-  - Added PWA manifest + service worker for installable home screen app
-  - Added browser notification alerts for screening results
-  - Enhanced touch targets to 60px+ for CHW field use
-  - Added safe area insets for iOS devices
-  - Updated Settings with Security (PIN) and Notifications sections
-  - Added platform capability badges to About section
-  - Photo field added to Child type + displayed in child list
-- 2026-02-21: Enhanced mobile app functionality
-  - Added bottom tab navigation bar (Home, Children, Demo, Settings)
-  - Created Settings screen with mock API toggle, clear data, privacy info
-  - Created Demo Cases screen with 4 preset risk scenarios
-  - Added Domain Selection screen between intro and questions
-  - Added consent checkbox gating on screening submission
-  - Enhanced Results with expandable "For Your Clinician" section + safety flags
-  - Added risk trend chart to Timeline view
-  - Added edit answers link on review screen
-  - All features use real data through AppContext + localStorage
+- **QR Code Generation**: `qrcode.react` library for QR code rendering.
+- **Offline Storage**: IndexedDB (native browser API).
+- **Camera Access**: `getUserMedia` API.
+- **Haptic Feedback**: Web Vibration API.
+- **Notifications**: Notification API.
+- **PWA Support**: Web App Manifest and Service Worker APIs.
+- **Barcode Scanning**: BarcodeDetector API.
