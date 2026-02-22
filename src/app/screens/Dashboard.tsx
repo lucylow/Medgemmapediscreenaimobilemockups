@@ -3,7 +3,7 @@ import { MobileContainer } from "../components/MobileContainer";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DisclaimerFooter } from "../components/DisclaimerFooter";
 import { useApp } from "../context/AppContext";
-import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope, Camera, Ruler, QrCode, CloudOff, Wifi, Database, Shield, Brain, Clock, Baby } from "lucide-react";
+import { Plus, TrendingUp, Users, Activity, BarChart3, ArrowLeft, Stethoscope, Camera, Ruler, QrCode, CloudOff, Wifi, Database, Shield, Brain, Clock, Baby, Watch } from "lucide-react";
 import { TabBar } from "../components/TabBar";
 import { motion } from "motion/react";
 import {
@@ -293,6 +293,18 @@ export function Dashboard() {
             <div className="text-left">
               <p className="font-bold text-sm">QR Patient Scanner</p>
               <p className="text-xs text-white/70">Instant record lookup · 0.8s scan</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate("/wearable")}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-[#0097A7] to-[#00838F] text-white active:scale-[0.98] transition-transform shadow-md"
+          >
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Watch className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-sm">Wearable Monitor</p>
+              <p className="text-xs text-white/70">IoT health screening · HRV + Steps + SpO2</p>
             </div>
           </button>
           <div className="grid grid-cols-2 gap-3">

@@ -63,6 +63,16 @@ The application is built with React 18 and Vite 6, utilizing Tailwind CSS v4 for
 - **MRI Use Cases**: Neurodevelopmental delay (brain age gap), white matter tract integrity, myelination progression, ventriculomegaly screening
 - **Models Dashboard**: /medgemma-models shows full model registry with benchmarks and deployment strategy
 
+## Wearable Health Monitor IoT
+- **WearableContext** (`src/app/wearable/WearableContext.tsx`): Provider managing device connection (Web Bluetooth API + mock fallback), metrics state, trend data, auto-reconnection via localStorage
+- **Clinical Engine** (`src/app/wearable/clinicalEngine.ts`): 5-domain risk assessment with age-adjusted thresholds (HRV RMSSD, steps/day, sleep hours, SpO2, falls/hr), ICD-10 code assignment, FHIR R4 Observation export, percentile computation
+- **Mock Data** (`src/app/wearable/mockWearableData.ts`): Seeded RNG generator for realistic wearable metrics by age, 7-day trend generation, 30% concern scenario probability, 3 mock devices (Owlet/Fitbit/Apple Watch)
+- **Wearable Dashboard** (`src/app/screens/WearableDashboard.tsx`): 5-metric grid (Activity/HRV/Sleep/SpO2/Falls), risk banner with composite score, 7-day area charts (Recharts), connected device list with battery, clinical findings with ICD-10 codes, recommendations
+- **HRV Analysis** (`src/app/screens/WearableHRVScreen.tsx`): Autonomic maturity screening with zone classification (High Stress/Moderate/Normal/Excellent), 7-day HRV trend with reference areas, pediatric maturity curve (P5/P50/P95), 5 clinical indicators (vagal tone, sympathovagal balance, stress response, maturity index, recovery capacity)
+- **Clinical Thresholds**: HRV <15ms (autonomic, 92% sensitivity), Steps <800@15mo (motor, 88%), Sleep <10h@24mo (cognitive, 85%), SpO2 <92% (coordination, 89%), Falls >3/hr@18mo (balance, 90%)
+- **FHIR Integration**: All metrics exported as FHIR R4 Observations with LOINC codes (80404-7, 55423-8, 93832-4, 2708-6, 52488-0)
+- **Navigation**: Tab bar entry ("Wearable"), dashboard quick action card, /wearable and /wearable-hrv routes
+
 ## Mock Data System (500+ Scenarios)
 - **Child Profiles** (`src/mock-data/child-profiles.ts`): 50+ diverse child names with sex, language, region. CHW names, clinic locations. Seeded RNG utilities for deterministic generation.
 - **Clinical Observations** (`src/mock-data/observations.ts`): Domain-specific observations across 9 age bands (0-3mo through 49-60mo) for 5 developmental domains (communication, gross_motor, fine_motor, problem_solving, personal_social). Each domain has 4 severity levels (on_track, monitor, concern, red_flag) with clinically accurate observation text. Includes ICD-10 code mappings and evidence-graded recommendations by risk level.

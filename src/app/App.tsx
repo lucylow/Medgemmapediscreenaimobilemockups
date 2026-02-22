@@ -5,6 +5,7 @@ import { AppProvider } from "./context/AppContext";
 import { OfflineProvider } from "./offline/OfflineContext";
 import { EdgeStatusProvider } from "./edge/EdgeStatusContext";
 import { MedGemmaProvider } from "./contexts/MedGemmaContext";
+import { WearableProvider } from "./wearable/WearableContext";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { PinLock, isPinEnabled, getSavedPin } from "./screens/PinLock";
 
@@ -29,12 +30,14 @@ export default function App() {
   return (
     <EdgeStatusProvider>
       <MedGemmaProvider>
-        <AppProvider>
-          <OfflineProvider>
-            <OfflineBanner />
-            <RouterProvider router={router} />
-          </OfflineProvider>
-        </AppProvider>
+        <WearableProvider>
+          <AppProvider>
+            <OfflineProvider>
+              <OfflineBanner />
+              <RouterProvider router={router} />
+            </OfflineProvider>
+          </AppProvider>
+        </WearableProvider>
       </MedGemmaProvider>
     </EdgeStatusProvider>
   );

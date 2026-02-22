@@ -1,12 +1,12 @@
 import { useNavigate, useLocation } from "react-router";
-import { Home, Users, Stethoscope, Beaker, Settings } from "lucide-react";
+import { Home, Users, Stethoscope, Beaker, Settings, Watch } from "lucide-react";
 import { hapticSelection } from "../platform/haptics";
 
 const tabs = [
   { path: "/dashboard", icon: Home, label: "Home" },
   { path: "/children", icon: Users, label: "Children" },
   { path: "/symptom-checker", icon: Stethoscope, label: "Check" },
-  { path: "/demo-cases", icon: Beaker, label: "Demo" },
+  { path: "/wearable", icon: Watch, label: "Wearable" },
   { path: "/settings", icon: Settings, label: "Settings" },
 ];
 

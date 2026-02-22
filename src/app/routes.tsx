@@ -36,6 +36,8 @@ import { ROPCamera } from "./screens/ROPCamera";
 import { ROPResultsScreen } from "./screens/ROPResultsScreen";
 import { ScreeningInputScreen } from "./screens/ScreeningInputScreen";
 import { EnhancedResultsScreen } from "./screens/EnhancedResultsScreen";
+import { WearableDashboard } from "./screens/WearableDashboard";
+import { WearableHRVScreen } from "./screens/WearableHRVScreen";
 
 export const router = createBrowserRouter([
   {
@@ -185,5 +187,13 @@ export const router = createBrowserRouter([
   {
     path: "/screening-results-enhanced",
     Component: EnhancedResultsScreen,
+  },
+  {
+    path: "/wearable",
+    Component: WearableDashboard,
+  },
+  {
+    path: "/wearable-hrv",
+    Component: WearableHRVScreen,
   },
 ]);
