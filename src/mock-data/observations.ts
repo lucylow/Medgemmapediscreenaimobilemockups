@@ -616,12 +616,159 @@ export const PERSONAL_SOCIAL_OBS: Record<AgeBand, DomainObservations> = {
   },
 };
 
+export const ROP_SCREENING_OBS: Record<string, DomainObservations> = {
+  "preterm_extreme": {
+    on_track: [
+      "Zone III, Stage 0. No ROP detected. Retina fully vascularized. Normal red reflex bilateral. Camera quality 92%.",
+      "Zone III mature vasculature. No plus disease. Optic disc appears healthy. Tortuosity score 1.2, dilation 0.8.",
+    ],
+    monitor: [
+      "Zone II, Stage 1. Mild demarcation line visible. No plus disease. Tortuosity 2.4, dilation 1.6. Weekly monitoring recommended.",
+      "Zone II, Stage 2. Ridge present with some neovascularization. No plus disease. Camera quality 87%. Follow-up in 5-7 days.",
+    ],
+    concern: [
+      "Zone II, Stage 2 with pre-plus disease. Increased tortuosity score 4.8. Dilation 3.2. Urgent ophthalmology review within 48 hours.",
+      "Zone I, Stage 2. Posterior pole involvement concerning. Tortuosity 5.1, dilation 4.0. ETROP Type 2 criteria met.",
+    ],
+    red_flag: [
+      "Zone I, Stage 3 with plus disease. Significant tortuosity 7.8, dilation 6.5. ETROP Type 1 - treatment indicated within 72 hours.",
+      "Aggressive posterior ROP (AP-ROP). Zone I plus disease with flat neovascularization. Emergent laser/anti-VEGF treatment required.",
+    ],
+  },
+  "preterm_moderate": {
+    on_track: [
+      "Zone III mature. No ROP. Red reflex symmetric and bright. Retinal vessels fully extended to ora serrata.",
+      "No ROP detected at 34-week screening. Normal fundus examination. Camera capture quality 94%.",
+    ],
+    monitor: [
+      "Zone II, Stage 1 bilateral. Mild ridge at vascular-avascular junction. No plus disease. Tortuosity 2.0.",
+      "Zone II, Stage 1 right eye only. Left eye vascularizing normally. Monitor weekly until vascularization complete.",
+    ],
+    concern: [
+      "Zone II, Stage 2 bilateral with pre-plus. Arterial tortuosity increasing. Dilation score 3.5. Close surveillance needed.",
+    ],
+    red_flag: [
+      "Zone I, Stage 3 plus disease bilateral. AV shunt visible. Emergent treatment referral. ETROP Type 1.",
+    ],
+  },
+};
+
+export const PARENT_REPORT_TEMPLATES: Record<string, Record<string, string[]>> = {
+  communication: {
+    on_track: [
+      "Says about {WORDS} words consistently. Starting to put two words together like 'more milk' and 'daddy go'. Loves pointing at pictures in books and naming animals. Follows 2-step directions well.",
+      "Vocabulary is growing every week. Uses words to tell us what they want. Sings along to nursery rhymes. Understands 'in', 'on', 'under' well.",
+      "Chatty child who narrates activities. Uses sentences with 3-4 words. Asks 'what' and 'where' questions. Speech is mostly understandable to family and strangers.",
+    ],
+    monitor: [
+      "Says about {WORDS} single words but no word combinations yet. Points to what they want instead of asking. Understands simple instructions like 'give me the ball'. Babbled by 12 months, first word at 16 months.",
+      "Limited vocabulary for age (~{WORDS} words). Understands well but doesn't speak much. Uses gestures more than words. We read together daily but word growth is slow.",
+      "Speech is hard to understand - maybe 50% by family. Uses a few words but mostly communicates by pulling us to what they want. Follows simple commands.",
+    ],
+    urgent: [
+      "Only says {WORDS} words. Does not combine words at all. Gets very frustrated when we don't understand. Hearing seems okay. Older sibling was talking in sentences at this age.",
+      "Very few words ({WORDS}). Does not follow 2-step directions. Sometimes seems to not hear us calling. Prefers to play alone quietly.",
+    ],
+    referral: [
+      "Used to say 15-20 words at 18 months, now only {WORDS} words. Decreased eye contact. No longer points to share interest. Hand flapping when excited.",
+      "No meaningful words. Does not respond to name consistently. Does not point or use gestures. Makes repetitive sounds but no real communication attempts.",
+    ],
+  },
+  gross_motor: {
+    on_track: [
+      "Walks well independently. Can walk up stairs holding one hand. Runs stiffly but rarely falls. Throws ball overhand. Climbs onto low furniture easily.",
+      "Very active child. Runs, jumps, and climbs everything. Kicks a ball forward. Walks up and down stairs with railing. Good balance overall.",
+    ],
+    monitor: [
+      "Walking but seems unsteady compared to peers. Falls more than other children the same age. Does not attempt to run or jump yet. Prefers sitting activities.",
+      "Can walk but gait looks unusual - toes point inward. Doesn't climb stairs without being carried. Cannot kick a ball yet.",
+    ],
+    urgent: [
+      "Not walking independently at {AGE} months. Can pull to stand but won't take steps. Seems weak in legs. Other children the same age are running.",
+      "Very clumsy for age. Falls constantly. Cannot walk up stairs even with help. Avoids physical activities. Muscle tone seems low.",
+    ],
+    referral: [
+      "Was walking but has stopped in the last month. Legs seem stiff. Falls to one side. Has started toe-walking exclusively.",
+      "Not walking or standing at {AGE} months. Cannot pull to stand without significant help. One side of body seems weaker than the other.",
+    ],
+  },
+  fine_motor: {
+    on_track: [
+      "Scribbles with crayons and draws simple shapes. Stacks 6+ blocks. Uses spoon and fork well. Can turn pages of a book one at a time.",
+      "Good hand coordination. Strings large beads. Opens containers. Draws circles and lines. Starting to use scissors with supervision.",
+    ],
+    monitor: [
+      "Scribbles but can't make specific shapes yet. Stacks 3-4 blocks sometimes, usually they fall. Uses spoon but very messy. Turns pages but often several at once.",
+      "Difficulty with small objects. Doesn't seem to have a dominant hand yet. Cannot stack blocks well. Drawing is mostly random marks.",
+    ],
+    urgent: [
+      "Cannot hold crayon properly at {AGE} months. Cannot stack more than 2 blocks. Difficulty picking up small foods. Hand trembles when reaching.",
+      "Very poor fine motor control. Cannot scribble. Difficulty feeding self even with fingers. Does not attempt to draw or build.",
+    ],
+    referral: [
+      "Was able to pick up small objects and draw but has lost these skills over past 2 months. Hands are increasingly fisted.",
+      "Cannot grasp objects at {AGE} months. No pincer grasp. Hands always fisted. Does not reach for toys.",
+    ],
+  },
+  problem_solving: {
+    on_track: [
+      "Very curious child. Figures out how toys work. Completes simple puzzles. Sorts shapes and colors. Loves stacking games and building.",
+      "Understands cause and effect well. Pretend plays with dolls and kitchen set. Can find hidden objects. Counts to 5. Knows some colors.",
+    ],
+    monitor: [
+      "Shows some curiosity but gets frustrated easily with puzzles. Can sort by one attribute but not two. Limited pretend play for age.",
+      "Doesn't seem as interested in problem-solving activities as peers. Can complete very simple puzzles but struggles with age-appropriate ones.",
+    ],
+    urgent: [
+      "No pretend play at {AGE} months. Cannot complete simple shape sorter. Very short attention span. Does not understand cause and effect.",
+      "Significantly behind peers in cognitive activities. Cannot sort objects. No interest in puzzles or building. Does not count.",
+    ],
+    referral: [
+      "Was doing puzzles and sorting but has lost interest and ability over past 3 months. Regression in play skills.",
+      "No functional play at {AGE} months. Lines up objects repetitively. No pretend play. Does not imitate actions.",
+    ],
+  },
+  personal_social: {
+    on_track: [
+      "Very social child. Plays well with other children. Takes turns in games. Shows empathy when someone is sad. Has close friendships.",
+      "Affectionate with family. Shows a range of emotions. Cooperates in group play. Can follow social rules in simple games.",
+    ],
+    monitor: [
+      "Tends to play alone more than with peers. Has difficulty sharing and taking turns. Gets frustrated easily in social situations.",
+      "Limited interest in other children. Plays alongside peers but doesn't interact. Attachment to caregivers seems appropriate.",
+    ],
+    urgent: [
+      "No interest in other children at {AGE} months. Does not make eye contact consistently. Prefers repetitive solitary play.",
+      "Does not show emotions appropriately for age. No empathy or concern for others. Avoids social interaction actively.",
+    ],
+    referral: [
+      "Used to be social and interactive but has withdrawn significantly. No longer shares toys or attention. Eye contact has decreased markedly.",
+      "No social reciprocity. Does not respond to own name. No joint attention. Does not point to show interest. Repetitive behaviors noted.",
+    ],
+  },
+};
+
+export const MCHAT_R_FLAGS: Record<string, string[]> = {
+  high_risk: [
+    "M-CHAT-R score 8+: Multiple red flags for ASD. Failed items: joint attention, pointing, social referencing, name response, imitation.",
+    "M-CHAT-R score 10: Critical failures in social communication. No pointing, no showing, no response to name, restricted interests.",
+  ],
+  moderate_risk: [
+    "M-CHAT-R score 3-7: Moderate risk. Failed items: inconsistent name response, limited pointing, delayed imitation.",
+    "M-CHAT-R score 5: Follow-up interview recommended. Concerns in pretend play, social interest, and gesture use.",
+  ],
+  low_risk: [
+    "M-CHAT-R score 0-2: Low risk. All critical items passed. Social communication age-appropriate.",
+  ],
+};
+
 export const ICD10_BY_DOMAIN: Record<string, string[]> = {
   communication: ["F80.1", "F80.2", "F80.9", "R47.8", "R48.8"],
   gross_motor: ["F82.0", "R26.0", "R26.2", "G80.0", "F82.4"],
   fine_motor: ["F82.1", "F82.2", "R27.8", "R27.0"],
   problem_solving: ["F84.0", "F70", "F71", "F88", "R41.84"],
   personal_social: ["F84.0", "F93.0", "F94.1", "F94.2", "F84.5"],
+  rop_screening: ["H35.10", "H35.11", "H35.12", "H35.13", "H35.17"],
   comprehensive: ["F89", "F88", "R62.0", "Z13.4"],
 };
 

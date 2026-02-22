@@ -37,6 +37,7 @@ function domainLabel(d: string): string {
     fine_motor: "Fine Motor",
     problem_solving: "Problem Solving",
     personal_social: "Personal-Social",
+    rop_screening: "ROP Screening",
     comprehensive: "Comprehensive",
   };
   return labels[d] || d;

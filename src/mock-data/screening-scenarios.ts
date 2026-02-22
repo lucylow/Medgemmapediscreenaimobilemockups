@@ -12,6 +12,9 @@ import {
   getObservation,
   ICD10_BY_DOMAIN,
   RECOMMENDATIONS_BY_RISK,
+  PARENT_REPORT_TEMPLATES,
+  MCHAT_R_FLAGS,
+  ROP_SCREENING_OBS,
 } from "./observations";
 
 export type ScenarioRisk = "on_track" | "monitor" | "urgent" | "referral";
@@ -21,6 +24,7 @@ export type ScenarioDomain =
   | "fine_motor"
   | "problem_solving"
   | "personal_social"
+  | "rop_screening"
   | "comprehensive";
 
 export interface ScreeningScenario {
@@ -48,6 +52,18 @@ export interface ScreeningScenario {
   recommendations: ScenarioRecommendation[];
   domainBreakdown: Record<string, number>;
   gestationalAgeWeeks?: number;
+  correctedAge?: number;
+  parentReport?: string;
+  mchatRScore?: number;
+  mchatRFlag?: string;
+  etropClassification?: {
+    zone: string;
+    stage: number;
+    plusDisease: boolean;
+    type: string;
+    tortuosityScore: number;
+    dilationScore: number;
+  };
   timestamp: string;
   modelVersion: string;
   inferenceTimeMs: number;
@@ -66,8 +82,11 @@ const ALL_DOMAINS: ScenarioDomain[] = [
   "fine_motor",
   "problem_solving",
   "personal_social",
+  "rop_screening",
   "comprehensive",
 ];
+
+const DOMAIN_WEIGHTS = [32, 13, 13, 12, 22, 8, 0];
 
 const SETTINGS: Array<"home" | "clinic" | "field"> = ["home", "clinic", "field"];
 
@@ -262,6 +281,7 @@ function generateClinicalSummary(
     fine_motor: "fine motor",
     problem_solving: "problem solving/cognitive",
     personal_social: "personal-social/emotional",
+    rop_screening: "retinopathy of prematurity (ROP)",
     comprehensive: "overall developmental",
   };
   const dLabel = domainLabel[domain] || "developmental";
@@ -353,22 +373,102 @@ function generateDomainBreakdown(
   return breakdown;
 }
 
-export function generateScreeningDataset(count: number = 500, seed: number = 42): ScreeningScenario[] {
+function generateParentReport(
+  domain: string,
+  riskLevel: ScenarioRisk,
+  ageMonths: number,
+  rng: () => number
+): string | undefined {
+  if (domain === "rop_screening") return undefined;
+  const domainTemplates = PARENT_REPORT_TEMPLATES[domain];
+  if (!domainTemplates) return undefined;
+  const riskKey = riskLevel === "urgent" ? "urgent" : riskLevel;
+  const templates = domainTemplates[riskKey] || domainTemplates["on_track"];
+  if (!templates || templates.length === 0) return undefined;
+  const template = pickRandom(templates, rng);
+  const wordCount = riskLevel === "on_track"
+    ? 40 + Math.floor(rng() * 60)
+    : riskLevel === "monitor"
+    ? 10 + Math.floor(rng() * 25)
+    : riskLevel === "urgent"
+    ? 3 + Math.floor(rng() * 8)
+    : 1 + Math.floor(rng() * 4);
+  return template
+    .replace(/\{WORDS\}/g, wordCount.toString())
+    .replace(/\{AGE\}/g, ageMonths.toString());
+}
+
+function generateROPObservation(
+  riskLevel: ScenarioRisk,
+  gestationalAge: number,
+  rng: () => number
+): string {
+  const severity = SEVERITY_MAP[riskLevel];
+  const category = gestationalAge < 30 ? "preterm_extreme" : "preterm_moderate";
+  const obs = ROP_SCREENING_OBS[category]?.[severity];
+  if (!obs || obs.length === 0) return "ROP screening performed. Results pending specialist review.";
+  return pickRandom(obs, rng);
+}
+
+function generateETROP(
+  riskLevel: ScenarioRisk,
+  rng: () => number
+): ScreeningScenario["etropClassification"] {
+  if (riskLevel === "on_track") {
+    return { zone: "III", stage: 0, plusDisease: false, type: "None", tortuosityScore: parseFloat((0.5 + rng() * 1.5).toFixed(1)), dilationScore: parseFloat((0.3 + rng() * 1.0).toFixed(1)) };
+  }
+  if (riskLevel === "monitor") {
+    return { zone: "II", stage: 1 + Math.floor(rng() * 2), plusDisease: false, type: "Type 2", tortuosityScore: parseFloat((2.0 + rng() * 2.0).toFixed(1)), dilationScore: parseFloat((1.5 + rng() * 2.0).toFixed(1)) };
+  }
+  if (riskLevel === "urgent") {
+    return { zone: rng() > 0.5 ? "I" : "II", stage: 2, plusDisease: rng() > 0.5, type: "Type 2", tortuosityScore: parseFloat((4.0 + rng() * 2.0).toFixed(1)), dilationScore: parseFloat((3.0 + rng() * 2.0).toFixed(1)) };
+  }
+  return { zone: "I", stage: 3, plusDisease: true, type: "Type 1", tortuosityScore: parseFloat((6.0 + rng() * 3.0).toFixed(1)), dilationScore: parseFloat((5.0 + rng() * 3.0).toFixed(1)) };
+}
+
+function generateMCHATR(
+  domain: string,
+  riskLevel: ScenarioRisk,
+  ageMonths: number,
+  rng: () => number
+): { score?: number; flag?: string } {
+  if (ageMonths < 16 || ageMonths > 30) return {};
+  if (domain !== "communication" && domain !== "personal_social" && domain !== "comprehensive") return {};
+  if (rng() > 0.6) return {};
+
+  if (riskLevel === "referral") {
+    const score = 8 + Math.floor(rng() * 5);
+    return { score, flag: pickRandom(MCHAT_R_FLAGS["high_risk"], rng) };
+  }
+  if (riskLevel === "urgent") {
+    const score = 3 + Math.floor(rng() * 5);
+    return { score, flag: pickRandom(MCHAT_R_FLAGS["moderate_risk"], rng) };
+  }
+  const score = Math.floor(rng() * 3);
+  return { score, flag: pickRandom(MCHAT_R_FLAGS["low_risk"], rng) };
+}
+
+export function generateScreeningDataset(count: number = 2500, seed: number = 42): ScreeningScenario[] {
   const rng = seededRandom(seed);
   const scenarios: ScreeningScenario[] = [];
   const now = Date.now();
-  const oneYear = 365 * 24 * 60 * 60 * 1000;
+  const twoYears = 2 * 365 * 24 * 60 * 60 * 1000;
 
   for (let i = 0; i < count; i++) {
     const profile = pickRandom(CHILD_NAMES, rng);
-    const childAge = 1 + Math.floor(rng() * 59);
-    const domain = pickRandom(ALL_DOMAINS, rng);
+    const domain = pickWeighted(ALL_DOMAINS, DOMAIN_WEIGHTS, rng);
+    const isROP = domain === "rop_screening";
+
+    const childAge = isROP
+      ? 1 + Math.floor(rng() * 11)
+      : 1 + Math.floor(rng() * 59);
+
     const primaryDomain =
       domain === "comprehensive"
         ? pickRandom(["communication", "gross_motor", "fine_motor", "problem_solving", "personal_social"], rng)
         : domain;
     const riskLevel = pickWeighted(RISK_DISTRIBUTION, RISK_WEIGHTS, rng);
-    const setting = pickRandom(SETTINGS, rng);
+    const setting = isROP ? "clinic" as const : pickRandom(SETTINGS, rng);
     const chwName = pickRandom(CHW_NAMES, rng);
     const location = pickRandom(CLINIC_LOCATIONS, rng);
     const ageBand = getAgeBand(childAge);
@@ -390,9 +490,9 @@ export function generateScreeningDataset(count: number = 500, seed: number = 42)
       referral: [0, 15],
     };
     const [sMin, sMax] = asq3Ranges[riskLevel];
-    const asq3Score = sMin + Math.floor(rng() * (sMax - sMin + 1));
-    const asq3Percentile =
-      riskLevel === "on_track"
+    const asq3Score = isROP ? 0 : sMin + Math.floor(rng() * (sMax - sMin + 1));
+    const asq3Percentile = isROP ? 0
+      : riskLevel === "on_track"
         ? 50 + Math.floor(rng() * 45)
         : riskLevel === "monitor"
         ? 15 + Math.floor(rng() * 35)
@@ -420,13 +520,18 @@ export function generateScreeningDataset(count: number = 500, seed: number = 42)
         evidence_level: r[3] as ScenarioRecommendation["evidence_level"],
       }));
 
-    const isPreemie = childAge <= 12 && rng() > 0.8;
+    const isPreemie = isROP || (childAge <= 12 && rng() > 0.75);
     const gestationalAgeWeeks = isPreemie ? 24 + Math.floor(rng() * 13) : undefined;
+    const correctedAge = gestationalAgeWeeks
+      ? Math.max(0, childAge - Math.round((40 - gestationalAgeWeeks) / 4.3))
+      : undefined;
 
-    const timestamp = new Date(now - Math.floor(rng() * oneYear)).toISOString();
+    const timestamp = new Date(now - Math.floor(rng() * twoYears)).toISOString();
     const inferenceTimeMs = 800 + Math.floor(rng() * 2800);
 
-    const observation = getObservation(primaryDomain, ageBand, severity, rng);
+    const observation = isROP
+      ? generateROPObservation(riskLevel, gestationalAgeWeeks || 28, rng)
+      : getObservation(primaryDomain, ageBand, severity, rng);
     const chwNotes = generateCHWNotes(primaryDomain, riskLevel, setting, rng);
     const keyFindings = generateKeyFindings(primaryDomain, riskLevel, childAge, rng);
     const clinicalSummary = generateClinicalSummary(
@@ -437,6 +542,9 @@ export function generateScreeningDataset(count: number = 500, seed: number = 42)
       rng
     );
     const domainBreakdown = generateDomainBreakdown(primaryDomain, riskLevel, rng);
+    const parentReport = generateParentReport(primaryDomain, riskLevel, childAge, rng);
+    const etropClassification = isROP ? generateETROP(riskLevel, rng) : undefined;
+    const mchat = generateMCHATR(primaryDomain, riskLevel, childAge, rng);
 
     scenarios.push({
       id: `scenario-${String(i + 1).padStart(4, "0")}`,
@@ -463,6 +571,11 @@ export function generateScreeningDataset(count: number = 500, seed: number = 42)
       recommendations,
       domainBreakdown,
       gestationalAgeWeeks,
+      correctedAge,
+      parentReport,
+      mchatRScore: mchat.score,
+      mchatRFlag: mchat.flag,
+      etropClassification,
       timestamp,
       modelVersion: "MedGemma-2B-IT-Q4 v1.2.0",
       inferenceTimeMs,
@@ -524,6 +637,11 @@ export function getScenarioStats(scenarios: ScreeningScenario[]) {
     preschool: scenarios.filter((s) => s.childAge > 36).length,
   };
 
+  const ropCount = scenarios.filter((s) => s.domain === "rop_screening").length;
+  const mchatRCount = scenarios.filter((s) => s.mchatRScore !== undefined).length;
+  const parentReportCount = scenarios.filter((s) => s.parentReport !== undefined).length;
+  const correctedAgeCount = scenarios.filter((s) => s.correctedAge !== undefined).length;
+
   return {
     total,
     byRisk,
@@ -535,6 +653,10 @@ export function getScenarioStats(scenarios: ScreeningScenario[]) {
     uniqueChildren,
     uniqueCHWs,
     ageDistribution,
+    ropCount,
+    mchatRCount,
+    parentReportCount,
+    correctedAgeCount,
   };
 }
 
@@ -542,7 +664,7 @@ let _cachedDataset: ScreeningScenario[] | null = null;
 
 export function getScreeningDataset(): ScreeningScenario[] {
   if (!_cachedDataset) {
-    _cachedDataset = generateScreeningDataset(500);
+    _cachedDataset = generateScreeningDataset(2500);
   }
   return _cachedDataset;
 }
